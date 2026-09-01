@@ -885,13 +885,19 @@ static void GameUpdate(void)
         float draw_h = (float)SCREEN_H * scale_val;
 
 #if defined(PLATFORM_IOS) || defined(PLATFORM_ANDROID)
-        if (g_config.screen_mode == 1) {
-            // 16:9 Panorámico: expande la imagen a formato panorámico 16:9
+        if (g_config.screen_mode == 0) {
+            // Modo 0 (Por defecto): COMPLETA - llena el 100% de la pantalla del iPhone moderno, super apaisado
+            draw_w = screen_render_w;
+            draw_h = screen_render_h;
+        } else if (g_config.screen_mode == 1) {
+            // Modo 1: 16:9 PANORAMICO arcade
+            draw_h = screen_render_h;
             draw_w = draw_h * (16.0f / 9.0f);
             if (draw_w > screen_render_w) draw_w = screen_render_w;
         } else if (g_config.screen_mode == 2) {
-            // Completa: ocupa toda la pantalla del dispositivo
-            draw_w = screen_render_w;
+            // Modo 2: 3:2 RETRO clásico (GBA / iPhone 4)
+            draw_w = (float)SCREEN_W * scale_val;
+            draw_h = (float)SCREEN_H * scale_val;
         }
 #endif
 
@@ -1025,8 +1031,8 @@ static void GameUpdate(void)
             PlayGameBgm(1);
 
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
-            const int total_opts = 7;
-            const int max_scroll = 4;
+            const int total_opts = 8;
+            const int max_scroll = 5;
 #else
             const int total_opts = 10;
             const int max_scroll = 7;
@@ -1089,13 +1095,15 @@ static void GameUpdate(void)
 
             char opt_strings[10][32];
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
+            const char* mode_txt[3] = { "COMPLETA", "16:9 WIDE", "3:2 RETRO" };
             snprintf(opt_strings[0], 32, "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], 32, "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(opt_strings[2], 32, "%s: < %s >", T(STR_FILTER), filter_txt[g_config.crt_filter]);
             snprintf(opt_strings[3], 32, "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], 32, "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], 32, "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
-            snprintf(opt_strings[6], 32, "%s", T(STR_DELETE_RECORDS));
+            snprintf(opt_strings[5], 32, "%s: < %s >", T(STR_SCREEN_MODE), mode_txt[g_config.screen_mode]);
+            snprintf(opt_strings[6], 32, "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[7], 32, "%s", T(STR_DELETE_RECORDS));
 #else
             const char* res_txt[4] = { "960X640", "1200X800", "1440X960", "1920X1080" };
             const char* mode_txt[2] = { "VENTANA", "SIN BORDES" };
@@ -1153,8 +1161,11 @@ static void GameUpdate(void)
                 if (m_right || m_accept) { g_config.language = (g_config.language + 1) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.language = (g_config.language - 1 + LANG_COUNT) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 5) { 
-                if (m_accept || m_left || m_right) { g_config.target_fps = 1 - g_config.target_fps; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 6) { 
+                if (m_accept || m_left || m_right) { g_config.target_fps = 1 - g_config.target_fps; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+            } else if (options_selection == 7) { 
                 if (m_accept) { state = 10; confirm_selection = 0; just_entered_menu = true; PlaySfx(sndHit); }
             }
 #else
@@ -1203,8 +1214,8 @@ static void GameUpdate(void)
             }
 
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
-            const int total_pause_opts = 5;
-            const int max_pause_scroll = 2;
+            const int total_pause_opts = 6;
+            const int max_pause_scroll = 3;
 #else
             const int total_pause_opts = 8;
             const int max_pause_scroll = 5;
@@ -1265,11 +1276,13 @@ static void GameUpdate(void)
 
             char pause_opt_strings[8][32];
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
+            const char* mode_txt[3] = { "COMPLETA", "16:9 WIDE", "3:2 RETRO" };
             snprintf(pause_opt_strings[0], 32, "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], 32, "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], 32, "%s: < %s >", T(STR_FILTER), filter_txt[g_config.crt_filter]);
             snprintf(pause_opt_strings[3], 32, "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], 32, "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[4], 32, "%s: < %s >", T(STR_SCREEN_MODE), mode_txt[g_config.screen_mode]);
+            snprintf(pause_opt_strings[5], 32, "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
 #else
             const char* res_txt[4] = { "960X640", "1200X800", "1440X960", "1920X1080" };
             const char* mode_txt[2] = { "VENTANA", "SIN BORDES" };
@@ -1322,6 +1335,9 @@ static void GameUpdate(void)
             } else if (pause_options_selection == 3) { 
                 if (m_accept) { state = 4; controls_origin_state = 12; controls_selection = 0; rebinding_action = -1; just_entered_menu = true; PlaySfx(sndHit); }
             } else if (pause_options_selection == 4) { 
+                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+            } else if (pause_options_selection == 5) { 
                 if (m_accept || m_left || m_right) { g_config.target_fps = 1 - g_config.target_fps; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
             }
 #else
@@ -2626,17 +2642,19 @@ static void GameUpdate(void)
             const char* fps_txt[2] = { "30 FPS", "60 FPS" };
 
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
-            char opt_strings[7][32];
+            const char* mode_txt[3] = { "COMPLETA", "16:9 WIDE", "3:2 RETRO" };
+            char opt_strings[8][32];
             snprintf(opt_strings[0], 32, "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], 32, "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(opt_strings[2], 32, "%s: < %s >", T(STR_FILTER), filter_txt[g_config.crt_filter]);
             snprintf(opt_strings[3], 32, "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], 32, "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], 32, "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
-            snprintf(opt_strings[6], 32, "%s", T(STR_DELETE_RECORDS));
+            snprintf(opt_strings[5], 32, "%s: < %s >", T(STR_SCREEN_MODE), mode_txt[g_config.screen_mode]);
+            snprintf(opt_strings[6], 32, "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[7], 32, "%s", T(STR_DELETE_RECORDS));
 
-            int total_opts = 7;
-            int max_scroll = 4;
+            int total_opts = 8;
+            int max_scroll = 5;
             int lang_idx = 4;
 #else
             const char* res_txt[4] = { "960X640", "1200X800", "1440X960", "1920X1080" };
@@ -2714,15 +2732,17 @@ static void GameUpdate(void)
             const char* fps_txt[2] = { "30 FPS", "60 FPS" };
 
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
-            char pause_opt_strings[5][64];
+            const char* mode_txt[3] = { "COMPLETA", "16:9 WIDE", "3:2 RETRO" };
+            char pause_opt_strings[6][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), filter_txt[g_config.crt_filter]);
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), mode_txt[g_config.screen_mode]);
+            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
 
-            int total_pause_opts = 5;
-            int max_pause_scroll = 2;
+            int total_pause_opts = 6;
+            int max_pause_scroll = 3;
 #else
             const char* res_txt[4] = { "960X640", "1200X800", "1440X960", "1920X1080" };
             const char* mode_txt[2] = { "VENTANA", "SIN BORDES" };
