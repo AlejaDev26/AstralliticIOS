@@ -55,4 +55,14 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 </dict>
+<key>CFBundleIcons</key>
+<dict>
+    <key>CFBundlePrimaryIcon</key>
+    <dict>
+        <key>CFBundleIconFiles</key>
+        <array>
+            <string>AppIcon60x60</string>
+        </array>
+    </dict>
+</dict>
 </plist>
