@@ -23,17 +23,6 @@ endif()
 
 message(STATUS "Usando raylib-iOS desde: ${RAYLIB_IOS_DIR}")
 
-# Aplicar parche para forzar orientación horizontal y corregir colisiones de tipos
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/patch_raylib_ios.py")
-    find_package(Python3 COMPONENTS Interpreter QUIET)
-    if(Python3_EXECUTABLE)
-        execute_process(
-            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/patch_raylib_ios.py"
-            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        )
-    endif()
-endif()
-
 # Directorios de ANGLE
 set(ANGLE_DIR "${RAYLIB_IOS_DIR}/deps/ANGLE")
 set(ANGLE_EGL_XCFW "${ANGLE_DIR}/libEGL.xcframework")
