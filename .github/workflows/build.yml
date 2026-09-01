@@ -13,6 +13,13 @@ jobs:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
+      - name: Sincronizar archivos raiz y src
+        run: |
+          if [ -f "main.c" ]; then cp -f main.c src/main.c; fi
+          if [ -f "Info.plist" ]; then cp -f Info.plist src/Info.plist; fi
+          if [ -f "LaunchScreen.storyboard" ]; then cp -f LaunchScreen.storyboard src/LaunchScreen.storyboard; fi
+          if [ -f "src/LaunchScreen.storyboard" ] && [ ! -f "LaunchScreen.storyboard" ]; then cp -f src/LaunchScreen.storyboard LaunchScreen.storyboard; fi
+
       - name: Descargar backend raylib-iOS con ANGLE
         run: |
           git clone --depth 1 https://github.com/ghera/raylib-iOS.git raylib-ios
@@ -67,13 +74,24 @@ jobs:
           # Asegurar que todos los assets estén en el bundle
           cp -r assets/* Payload/Astrallitic.app/
 
+          # Generar artwork para Sideloadly / iTunes
+          if [ -f "assets/icon.png" ]; then
+            cp assets/icon.png iTunesArtwork
+            cp assets/icon.png iTunesArtwork@2x
+          fi
+
           # Firma Ad-hoc de dentro hacia afuera (requisito estricto de iOS)
           codesign --force --sign - Payload/Astrallitic.app/Frameworks/libEGL.framework || true
           codesign --force --sign - Payload/Astrallitic.app/Frameworks/libGLESv2.framework || true
           codesign --force --sign - Payload/Astrallitic.app || true
 
-          # Empaquetar manteniendo symlinks de frameworks
-          zip -yr Astrallitic.ipa Payload
+          # Empaquetar manteniendo symlinks de frameworks y artwork
+          if [ -f "iTunesArtwork" ]; then
+            zip -yr Astrallitic.ipa Payload iTunesArtwork iTunesArtwork@2x
+            rm -f iTunesArtwork iTunesArtwork@2x
+          else
+            zip -yr Astrallitic.ipa Payload
+          fi
           rm -rf Payload
 
       - name: Subir archivo IPA como artefacto
