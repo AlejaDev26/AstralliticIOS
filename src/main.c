@@ -880,6 +880,13 @@ static void GameUpdate(void)
 
         float screen_render_w = (float)GetScreenWidth();
         float screen_render_h = (float)GetScreenHeight();
+#if defined(PLATFORM_IOS) || defined(PLATFORM_ANDROID)
+        if (screen_render_w < screen_render_h) {
+            float tmp = screen_render_w;
+            screen_render_w = screen_render_h;
+            screen_render_h = tmp;
+        }
+#endif
         float scale_val = fminf(screen_render_w / (float)SCREEN_W, screen_render_h / (float)SCREEN_H);
         float draw_w = (float)SCREEN_W * scale_val;
         float draw_h = (float)SCREEN_H * scale_val;
