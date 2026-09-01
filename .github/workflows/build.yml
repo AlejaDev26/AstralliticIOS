@@ -39,6 +39,7 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -73,6 +74,26 @@ jobs:
 
           # Asegurar que todos los assets estén en el bundle
           cp -r assets/* Payload/Astrallitic.app/
+
+          # Compilar Assets.car con actool para que el icono aparezca siempre en iOS
+          ICON_FILE=""
+          if [ -f "assets/icon.png" ]; then ICON_FILE="assets/icon.png";
+          elif [ -f "icon.png" ]; then ICON_FILE="icon.png";
+          elif [ -f "assets/AppIcon1024x1024.png" ]; then ICON_FILE="assets/AppIcon1024x1024.png"; fi
+
+          if [ -n "$ICON_FILE" ]; then
+            mkdir -p Assets.xcassets/AppIcon.appiconset
+            cp "$ICON_FILE" Assets.xcassets/AppIcon.appiconset/icon.png
+            echo '{"info":{"version":1,"author":"xcode"}}' > Assets.xcassets/Contents.json
+            echo '{"images":[{"idiom":"universal","platform":"ios","size":"1024x1024","filename":"icon.png"}],"info":{"version":1,"author":"xcode"}}' > Assets.xcassets/AppIcon.appiconset/Contents.json
+            echo "Compilando Assets.car con actool desde $ICON_FILE..."
+            xcrun actool Assets.xcassets \
+              --compile Payload/Astrallitic.app \
+              --platform iphoneos \
+              --minimum-deployment-target 15.0 \
+              --app-icon AppIcon \
+              --output-format human-readable-text || true
+          fi
 
           # Generar artwork para Sideloadly / iTunes
           if [ -f "assets/icon.png" ]; then
