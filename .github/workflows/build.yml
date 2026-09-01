@@ -1,0 +1,84 @@
+name: Compilar IPA para iPhone
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Descargar backend raylib-iOS con ANGLE
+        run: |
+          git clone --depth 1 https://github.com/ghera/raylib-iOS.git raylib-ios
+          python3 patch_raylib_ios.py
+
+      - name: Generar Proyecto Xcode con CMake
+        run: |
+          cmake -B build -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+
+      - name: Compilar App (.app)
+        run: |
+          xcodebuild build \
+            -project build/Astrallitic.xcodeproj \
+            -scheme Astrallitic \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CONFIGURATION_BUILD_DIR=build/Release-iphoneos
+
+      - name: Empaquetar a formato .ipa
+        run: |
+          mkdir -p Payload
+          cp -r build/Release-iphoneos/Astrallitic.app Payload/
+
+          # Asegurar que los frameworks de ANGLE estén embebidos correctamente
+          mkdir -p Payload/Astrallitic.app/Frameworks
+          if [ ! -d Payload/Astrallitic.app/Frameworks/libEGL.framework ]; then
+            echo "Copiando libEGL.framework a Payload..."
+            cp -r raylib-ios/deps/ANGLE/libEGL.xcframework/ios-arm64/libEGL.framework Payload/Astrallitic.app/Frameworks/
+          fi
+          if [ ! -d Payload/Astrallitic.app/Frameworks/libGLESv2.framework ]; then
+            echo "Copiando libGLESv2.framework a Payload..."
+            cp -r raylib-ios/deps/ANGLE/libGLESv2.xcframework/ios-arm64/libGLESv2.framework Payload/Astrallitic.app/Frameworks/
+          fi
+
+          # Limpiar cabeceras de desarrollo para mantener limpio el bundle
+          rm -rf Payload/Astrallitic.app/Frameworks/libEGL.framework/Headers
+          rm -rf Payload/Astrallitic.app/Frameworks/libEGL.framework/Modules
+          rm -rf Payload/Astrallitic.app/Frameworks/libGLESv2.framework/Headers
+          rm -rf Payload/Astrallitic.app/Frameworks/libGLESv2.framework/Modules
+
+          # Asegurar permisos de ejecución en todos los binarios
+          chmod +x Payload/Astrallitic.app/Astrallitic
+          chmod +x Payload/Astrallitic.app/Frameworks/libEGL.framework/libEGL
+          chmod +x Payload/Astrallitic.app/Frameworks/libGLESv2.framework/libGLESv2
+
+          # Asegurar que todos los assets estén en el bundle
+          cp -r assets/* Payload/Astrallitic.app/
+
+          # Firma Ad-hoc de dentro hacia afuera (requisito estricto de iOS)
+          codesign --force --sign - Payload/Astrallitic.app/Frameworks/libEGL.framework || true
+          codesign --force --sign - Payload/Astrallitic.app/Frameworks/libGLESv2.framework || true
+          codesign --force --sign - Payload/Astrallitic.app || true
+
+          # Empaquetar manteniendo symlinks de frameworks
+          zip -yr Astrallitic.ipa Payload
+          rm -rf Payload
+
+      - name: Subir archivo IPA como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astrallitic-IPA
+          path: Astrallitic.ipa
+          retention-days: 14
