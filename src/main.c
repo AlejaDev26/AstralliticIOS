@@ -43,9 +43,22 @@ InputDeviceType g_toast_device = INPUT_KEYBOARD;
 #define ACH_ESQUIVE_PERFECTO 26
 #define ACH_LIMPIEZA_TOTAL 27
 #define ACH_VOY_CIEGO 28
-#define ACH_LEYENDA 29
+#define ACH_SIN_RASGUNOS 29
+#define ACH_ULTIMO_SUPERVIVIENTE 30
+#define ACH_A_CONTRACORRIENTE 31
+#define ACH_PISALO 32
+#define ACH_NI_UN_PASO_ATRAS 33
+#define ACH_BAILANDO_ENTRE_BALAS 34
+#define ACH_DIVIDE_Y_VENCERAS 35
+#define ACH_KABOOM 36
+#define ACH_DONDE_ESTA 37
+#define ACH_NO_ERA_TAN_DIFICIL 38
+#define ACH_INFIERNO_PURO 39
+#define ACH_A_UNA_VIDA 40
+#define ACH_SIN_AYUDA 41
+#define ACH_LEYENDA 42
 
-#define ACHIEVEMENT_QUEUE_SIZE 30
+#define ACHIEVEMENT_QUEUE_SIZE 43
 #define ARSENAL_NORMAL_MASK 1
 #define ARSENAL_RAPID_MASK 2
 #define ARSENAL_TRIPLE_MASK 4
@@ -54,8 +67,10 @@ InputDeviceType g_toast_device = INPUT_KEYBOARD;
 #define ARSENAL_POISON_MASK 32
 #define ARSENAL_ALL_MASK 63
 
-bool g_achievements_unlocked[30] = { false };
-int g_achievement_progress[30] = { 0 };
+void UnlockAchievement(int index);
+
+bool g_achievements_unlocked[NUM_ACHIEVEMENTS] = { false };
+int g_achievement_progress[NUM_ACHIEVEMENTS] = { 0 };
 int g_enemies_killed_per_diff[4] = { 0, 0, 0, 0 };
 int g_achievement_queue[ACHIEVEMENT_QUEUE_SIZE] = { 0 };
 int g_achievement_queue_count = 0;
@@ -64,6 +79,68 @@ bool show_ach_details = false;
 int g_achievement_toast_timer = 0;
 int g_latest_unlocked_ach = 0;
 bool player_took_hit_this_wave = false;
+
+int g_waves_without_damage_streak = 0;
+bool g_boss_dash_used = false;
+int g_consecutive_bullets_dodged = 0;
+bool g_divisor_combo_active = false;
+int g_divisor_fragments_left = 0;
+int g_divisor_combo_timer = 0;
+int g_powerups_picked_this_wave = 0;
+int g_powerups_picked_this_run = 0;
+
+static const int ach_enemy_types[NUM_ACHIEVEMENTS] = {
+    0, 1, 2, 3, // 0-3: Novato Facil (Normal), Normal (Rapido), Dificil (Tanque), Infierno (Boss)
+    4, 5, 7, 8, // 4-7: Veterano Facil (Sniper), Normal (Divisor), Dificil (Kamikaze), Infierno (Patrullero)
+    9, 2, 4, 3, // 8-11: Master Facil (Teleport), Normal (Tanque), Dificil (Sniper), Infierno (Boss)
+    2,          // 12: Caliente (Tanque)
+    0,          // 13: Intacto (Normal)
+    7,          // 14: Boom (Kamikaze)
+    1,          // 15: Frio Frio (Rapido)
+    2,          // 16: Toxicidad (Tanque)
+    4,          // 17: Tiempo Muerto (Sniper)
+    8,          // 18: Empoderate (Patrullero)
+    1,          // 19: No Tocarme (Rapido)
+    3,          // 20: Cazador Jefes (Boss)
+    9,          // 21: Teletransp (Teleport)
+    0,          // 22: Ultimo Aliento (Normal)
+    4,          // 23: Full Arsenal (Sniper)
+    3,          // 24: Modo Dios (Boss)
+    1,          // 25: Demasiado Rap (Rapido)
+    4,          // 26: Esquive Perfecto (Sniper)
+    7,          // 27: Limpieza Total (Kamikaze)
+    8,          // 28: Voy Ciego (Patrullero)
+    0,          // 29: Sin Rasgunos (Normal)
+    2,          // 30: Ultimo Superviviente (Tanque)
+    1,          // 31: A Contracorriente (Rapido)
+    7,          // 32: Pisalo (Kamikaze)
+    3,          // 33: Ni Un Paso Atras (Boss)
+    4,          // 34: Bailando entre Balas (Sniper)
+    5,          // 35: Divide y Venceras (Divisor)
+    7,          // 36: Kaboom (Kamikaze)
+    9,          // 37: Donde Esta? (Teleport)
+    8,          // 38: No Era Tan Dificil (Patrullero)
+    1,          // 39: Infierno Puro (Rapido)
+    3,          // 40: A Una Vida (Boss)
+    2,          // 41: Sin Ayuda (Tanque)
+    3           // 42: Leyenda (Boss)
+};
+
+static inline StringId GetAchTitleId(int index) {
+    if (index < 0 || index >= NUM_ACHIEVEMENTS) return STR_ACH_1_TITLE;
+    return (StringId)(STR_ACH_1_TITLE + index * 2);
+}
+
+static inline StringId GetAchDescId(int index) {
+    if (index < 0 || index >= NUM_ACHIEVEMENTS) return STR_ACH_1_DESC;
+    return (StringId)(STR_ACH_1_DESC + index * 2);
+}
+
+static inline void CheckScoreAchievements(int cur_score, int cur_hp, int cur_diff) {
+    if (cur_hp == 1 && cur_score >= 1000) UnlockAchievement(ACH_ULTIMO_ALIENTO);
+    if (cur_hp == 1 && cur_score >= 10000) UnlockAchievement(ACH_ULTIMO_SUPERVIVIENTE);
+    if (cur_diff == 3 && g_powerups_picked_this_run == 0 && cur_score >= 5000) UnlockAchievement(ACH_SIN_AYUDA);
+}
 
 KeyBindings g_keys = {
     .key_up = KEY_W,
@@ -157,7 +234,20 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_27_TITLE] = "ESQUIVE PERFE.", [STR_ACH_27_DESC] = "EVITA 10 PROYECTILES CON DASH",
         [STR_ACH_28_TITLE] = "LIMPIEZA TOT.", [STR_ACH_28_DESC] = "NUKE CON 10 O MAS ENEMIGOS",
         [STR_ACH_29_TITLE] = "VOY CIEGO", [STR_ACH_29_DESC] = "EMBORRACHATE TOMANDO LA BOTELLA",
-        [STR_ACH_30_TITLE] = "LEYENDA", [STR_ACH_30_DESC] = "DESBLOQUEA TODOS LOS DEMAS LOGROS",
+        [STR_ACH_30_TITLE] = "SIN RASGUNOS", [STR_ACH_30_DESC] = "SOBREVIVE 3 OLEADAS SEGUIDAS SIN RECIBIR DANO",
+        [STR_ACH_31_TITLE] = "ULTIMO SUPERVIVIENTE", [STR_ACH_31_DESC] = "LLEGA A 10000 PUNTOS TENIENDO 1 CORAZON",
+        [STR_ACH_32_TITLE] = "A CONTRACORRIENTE", [STR_ACH_32_DESC] = "MATA 10 ENEMIGOS CON CONTROL INVERTIDO",
+        [STR_ACH_33_TITLE] = "PISALO", [STR_ACH_33_DESC] = "MATA UN KAMIKAZE CON TIRO NORMAL A QUEMARROPA",
+        [STR_ACH_34_TITLE] = "NI UN PASO ATRAS", [STR_ACH_34_DESC] = "DERROTA A UN BOSS SIN USAR DASH",
+        [STR_ACH_35_TITLE] = "BAILANDO ENTRE BALAS", [STR_ACH_35_DESC] = "ESQUIVA 25 BALAS SEGUIDAS SIN RECIBIR DANO",
+        [STR_ACH_36_TITLE] = "DIVIDE Y VENCERAS", [STR_ACH_36_DESC] = "DESTRUYE UN DIVISOR Y SUS DOS FRAGMENTOS",
+        [STR_ACH_37_TITLE] = "KABOOM", [STR_ACH_37_DESC] = "UN KAMIKAZE DESTRUYE A OTRO ENEMIGO",
+        [STR_ACH_38_TITLE] = "DONDE ESTA?", [STR_ACH_38_DESC] = "MATA A UN TELEPORT JUSTO AL TELETRANSPORTARSE",
+        [STR_ACH_39_TITLE] = "NO ERA TAN DIFICIL", [STR_ACH_39_DESC] = "SUPERA UNA OLEADA EN DIFICIL SIN POWERUPS",
+        [STR_ACH_40_TITLE] = "INFIERNO PURO", [STR_ACH_40_DESC] = "LLEGA A LA OLEADA 15 EN INFIERNO",
+        [STR_ACH_41_TITLE] = "A UNA VIDA", [STR_ACH_41_DESC] = "DERROTA UN BOSS EN INFIERNO CON 1 CORAZON",
+        [STR_ACH_42_TITLE] = "SIN AYUDA", [STR_ACH_42_DESC] = "LLEGA A 5000 EN INFIERNO SIN POWERUPS",
+        [STR_ACH_43_TITLE] = "LEYENDA", [STR_ACH_43_DESC] = "DESBLOQUEA TODOS LOS DEMAS LOGROS",
         [STR_TOUCH_BACK] = "< TOCA AQUI PARA VOLVER >",
         [STR_ACH_HINT] = "TOCA UN LOGRO PARA VER DETALLES",
         [STR_ACH_STATUS_UNLOCKED] = "ESTADO: DESBLOQUEADO (OK)",
@@ -214,7 +304,20 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_27_TITLE] = "PERFECT DODGE", [STR_ACH_27_DESC] = "EVADE 10 BULLETS USING DASH",
         [STR_ACH_28_TITLE] = "TOTAL PURGE", [STR_ACH_28_DESC] = "NUKE WITH 10+ ENEMIES ON SCREEN",
         [STR_ACH_29_TITLE] = "BLIND DRUNK", [STR_ACH_29_DESC] = "GET WASTED DRINKING THE BOTTLE",
-        [STR_ACH_30_TITLE] = "LEGEND", [STR_ACH_30_DESC] = "UNLOCK ALL OTHER ACHIEVEMENTS",
+        [STR_ACH_30_TITLE] = "SCRATCHLESS", [STR_ACH_30_DESC] = "SURVIVE 3 WAVES IN A ROW WITHOUT DAMAGE",
+        [STR_ACH_31_TITLE] = "LAST SURVIVOR", [STR_ACH_31_DESC] = "REACH 10000 POINTS WITH ONLY 1 HEART",
+        [STR_ACH_32_TITLE] = "AGAINST THE TIDE", [STR_ACH_32_DESC] = "KILL 10 ENEMIES WITH INVERTED CONTROLS",
+        [STR_ACH_33_TITLE] = "STEP ON IT", [STR_ACH_33_DESC] = "KILL A KAMIKAZE POINT BLANK WITH NORMAL SHOT",
+        [STR_ACH_34_TITLE] = "NOT A SINGLE STEP BACK", [STR_ACH_34_DESC] = "DEFEAT A BOSS WITHOUT USING DASH",
+        [STR_ACH_35_TITLE] = "BULLET DANCER", [STR_ACH_35_DESC] = "DODGE 25 BULLETS IN A ROW WITHOUT DAMAGE",
+        [STR_ACH_36_TITLE] = "DIVIDE AND CONQUER", [STR_ACH_36_DESC] = "DESTROY A DIVIDER AND BOTH OF ITS PIECES",
+        [STR_ACH_37_TITLE] = "KABOOM", [STR_ACH_37_DESC] = "MAKE A KAMIKAZE DESTROY ANOTHER ENEMY",
+        [STR_ACH_38_TITLE] = "WHERE IS IT?", [STR_ACH_38_DESC] = "KILL A TELEPORTER RIGHT AFTER IT TELEPORTS",
+        [STR_ACH_39_TITLE] = "NOT THAT HARD", [STR_ACH_39_DESC] = "BEAT A WAVE ON HARD WITHOUT POWERUPS",
+        [STR_ACH_40_TITLE] = "PURE HELL", [STR_ACH_40_DESC] = "REACH WAVE 15 ON HELL DIFFICULTY",
+        [STR_ACH_41_TITLE] = "ONE LIFE", [STR_ACH_41_DESC] = "DEFEAT A BOSS ON HELL WITH ONLY 1 HEART",
+        [STR_ACH_42_TITLE] = "UNASSISTED", [STR_ACH_42_DESC] = "REACH 5000 ON HELL WITHOUT POWERUPS",
+        [STR_ACH_43_TITLE] = "LEGEND", [STR_ACH_43_DESC] = "UNLOCK ALL OTHER ACHIEVEMENTS",
         [STR_TOUCH_BACK] = "< TAP HERE TO GO BACK >",
         [STR_ACH_HINT] = "TAP AN ACHIEVEMENT FOR DETAILS",
         [STR_ACH_STATUS_UNLOCKED] = "STATUS: UNLOCKED (OK)",
@@ -271,7 +374,20 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_27_TITLE] = "ESQUIVE PARFAITE", [STR_ACH_27_DESC] = "EVITE 10 TIRS AVEC DASH",
         [STR_ACH_28_TITLE] = "PURGE TOTALE", [STR_ACH_28_DESC] = "NUKE AVEC 10+ ENNEMIS",
         [STR_ACH_29_TITLE] = "BOURRE", [STR_ACH_29_DESC] = "BOIS LA BOUTEILLE VERTE",
-        [STR_ACH_30_TITLE] = "LEGENDE", [STR_ACH_30_DESC] = "DEVERROUILLE TOUS LES SUCCES",
+        [STR_ACH_30_TITLE] = "SANS EGRATIGNURE", [STR_ACH_30_DESC] = "SURVIVRE A 3 VAGUES DE SUITE SANS DEGATS",
+        [STR_ACH_31_TITLE] = "DERNIER SURVIVANT", [STR_ACH_31_DESC] = "ATTEINDRE 10000 POINTS AVEC 1 SEUL COEUR",
+        [STR_ACH_32_TITLE] = "A CONTRE COURANT", [STR_ACH_32_DESC] = "TUER 10 ENNEMIS AVEC COMMANDES INVERSEES",
+        [STR_ACH_33_TITLE] = "ECRASE LE", [STR_ACH_33_DESC] = "TUER UN KAMIKAZE A BOUT PORTANT AU TIR DE BASE",
+        [STR_ACH_34_TITLE] = "PAS UN PAS EN ARRIERE", [STR_ACH_34_DESC] = "VAINCRE UN BOSS SANS UTILISER LE DASH",
+        [STR_ACH_35_TITLE] = "DANSE DES BALLES", [STR_ACH_35_DESC] = "ESQUIVER 25 BALLES DE SUITE SANS DEGATS",
+        [STR_ACH_36_TITLE] = "DIVISER POUR REGNER", [STR_ACH_36_DESC] = "DETRUIRE UN DIVISEUR ET SES DEUX ECLATS",
+        [STR_ACH_37_TITLE] = "KABOOM", [STR_ACH_37_DESC] = "UN KAMIKAZE DETRUIT UN AUTRE ENNEMI",
+        [STR_ACH_38_TITLE] = "OU EST IL?", [STR_ACH_38_DESC] = "TUER UN TELEPORTEUR JUSTE APRES SA TELEPORTATION",
+        [STR_ACH_39_TITLE] = "PAS SI DIFFICILE", [STR_ACH_39_DESC] = "PASSER UNE VAGUE EN DIFFICILE SANS POWERUPS",
+        [STR_ACH_40_TITLE] = "PUR ENFER", [STR_ACH_40_DESC] = "ATTEINDRE LA VAGUE 15 EN ENFER",
+        [STR_ACH_41_TITLE] = "A UNE VIE", [STR_ACH_41_DESC] = "VAINCRE UN BOSS EN ENFER AVEC 1 COEUR",
+        [STR_ACH_42_TITLE] = "SANS AIDE", [STR_ACH_42_DESC] = "ATTEINDRE 5000 EN ENFER SANS POWERUPS",
+        [STR_ACH_43_TITLE] = "LEGENDE", [STR_ACH_43_DESC] = "DEVERROUILLE TOUS LES SUCCES",
         [STR_TOUCH_BACK] = "< TOUCHEZ POUR RETOUR >",
         [STR_ACH_HINT] = "TOUCHEZ UN SUCCES POUR DETAILS",
         [STR_ACH_STATUS_UNLOCKED] = "STATUT: DEVERROUILLE (OK)",
@@ -328,7 +444,20 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_27_TITLE] = "SCHIVATA", [STR_ACH_27_DESC] = "EVITA 10 COLPI CON DASH",
         [STR_ACH_28_TITLE] = "PULIZIA TOTALE", [STR_ACH_28_DESC] = "NUKE CON 10+ NEMICI IN GIOCO",
         [STR_ACH_29_TITLE] = "UBRIACO", [STR_ACH_29_DESC] = "UBRIACATI CON LA BOTTIGLIA",
-        [STR_ACH_30_TITLE] = "LEGGENDA", [STR_ACH_30_DESC] = "SBLOCCA TUTTI GLI ALTRI SUCCESSI",
+        [STR_ACH_30_TITLE] = "SENZA UN GRAFFIO", [STR_ACH_30_DESC] = "SOPRAVVIVI A 3 ONDATE SENZA SUBIRE DANNI",
+        [STR_ACH_31_TITLE] = "ULTIMO SUPERSTITE", [STR_ACH_31_DESC] = "RAGGIUNGI 10000 PUNTI CON SOLO 1 CUORE",
+        [STR_ACH_32_TITLE] = "CONTROCORRENTE", [STR_ACH_32_DESC] = "UCCIDI 10 NEMICI CON COMANDI INVERTITI",
+        [STR_ACH_33_TITLE] = "SCHIACCIA", [STR_ACH_33_DESC] = "UCCIDI UN KAMIKAZE DA VICINO CON TIRO BASE",
+        [STR_ACH_34_TITLE] = "NON UN PASSO INDIETRO", [STR_ACH_34_DESC] = "SCONFIGGI UN BOSS SENZA USARE IL DASH",
+        [STR_ACH_35_TITLE] = "DANZA TRA I PROIETTILI", [STR_ACH_35_DESC] = "SCHIVA 25 PROIETTILI DI FILA SENZA DANNI",
+        [STR_ACH_36_TITLE] = "DIVIDI E CONQUISTA", [STR_ACH_36_DESC] = "DISTRUGGI UN DIVISORE E I SUOI DUE FRAMMENTI",
+        [STR_ACH_37_TITLE] = "KABOOM", [STR_ACH_37_DESC] = "UN KAMIKAZE DISTRUGGE UN ALTRO NEMICO",
+        [STR_ACH_38_TITLE] = "DOVE E FINITO?", [STR_ACH_38_DESC] = "UCCIDI UN TELETRASPORTO SUBITO DOPO IL SALTO",
+        [STR_ACH_39_TITLE] = "NON COSI DIFFICILE", [STR_ACH_39_DESC] = "SUPERA UN ONDATA IN DIFFICILE SENZA POWERUP",
+        [STR_ACH_40_TITLE] = "PURO INFERNO", [STR_ACH_40_DESC] = "RAGGIUNGI L ONDATA 15 A INFERNO",
+        [STR_ACH_41_TITLE] = "A UNA VITA", [STR_ACH_41_DESC] = "SCONFIGGI UN BOSS IN INFERNO CON 1 CUORE",
+        [STR_ACH_42_TITLE] = "SENZA AIUTO", [STR_ACH_42_DESC] = "RAGGIUNGI 5000 IN INFERNO SENZA POWERUP",
+        [STR_ACH_43_TITLE] = "LEGGENDA", [STR_ACH_43_DESC] = "SBLOCCA TUTTI GLI ALTRI SUCCESSI",
         [STR_TOUCH_BACK] = "< TOCCA PER TORNARE >",
         [STR_ACH_HINT] = "TOCCA UN SUCCESSO PER DETTAGLI",
         [STR_ACH_STATUS_UNLOCKED] = "STATO: SBLOCCATO (OK)",
@@ -385,7 +514,20 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_27_TITLE] = "PERFEKT DUCK", [STR_ACH_27_DESC] = "WEICHE 10 SCHUESSEN PER DASH AUS",
         [STR_ACH_28_TITLE] = "TOTALREINIGUNG", [STR_ACH_28_DESC] = "NUKE MIT 10+ FEINDEN",
         [STR_ACH_29_TITLE] = "VOLLTRUNKEN", [STR_ACH_29_DESC] = "TRINKE DIE GRUENE FLASCHE",
-        [STR_ACH_30_TITLE] = "LEGENDE", [STR_ACH_30_DESC] = "SCHALTE ALLE ERFOLGE FREI",
+        [STR_ACH_30_TITLE] = "OHNE KRATZER", [STR_ACH_30_DESC] = "UBERLEBE 3 WELLEN IN FOLGE OHNE SCHADEN",
+        [STR_ACH_31_TITLE] = "LETZTER UBERLEBENDER", [STR_ACH_31_DESC] = "ERREICHE 10000 PUNKTE MIT NUR 1 HERZ",
+        [STR_ACH_32_TITLE] = "GEGEN DEN STROM", [STR_ACH_32_DESC] = "TOETE 10 GEGNER MIT INVERTIERTER STEUERUNG",
+        [STR_ACH_33_TITLE] = "TRITT DRAUF", [STR_ACH_33_DESC] = "TOETE KAMIKAZE NAH MIT NORMALSCHUSS",
+        [STR_ACH_34_TITLE] = "KEIN SCHRITT ZURUCK", [STR_ACH_34_DESC] = "BESIEGE EINEN BOSS OHNE DASH ZU NUTZEN",
+        [STR_ACH_35_TITLE] = "KUGELTANZER", [STR_ACH_35_DESC] = "WEICHE 25 KUGELN IN FOLGE OHNE SCHADEN AUS",
+        [STR_ACH_36_TITLE] = "TEILE UND HERRSCHE", [STR_ACH_36_DESC] = "ZERSTOERE EINEN TEILER UND BEIDE FRAGMENTE",
+        [STR_ACH_37_TITLE] = "KABOOM", [STR_ACH_37_DESC] = "EIN KAMIKAZE ZERSTOERT EINEN ANDEREN GEGNER",
+        [STR_ACH_38_TITLE] = "WO IST ER?", [STR_ACH_38_DESC] = "TOETE TELEPORTER DIREKT NACH DEM TELEPORT",
+        [STR_ACH_39_TITLE] = "GAR NICHT SO SCHWER", [STR_ACH_39_DESC] = "SCHLAGE EINE WELLE AUF SCHWER OHNE POWERUPS",
+        [STR_ACH_40_TITLE] = "REINE HOELLE", [STR_ACH_40_DESC] = "ERREICHE WELLE 15 AUF HOELLE",
+        [STR_ACH_41_TITLE] = "AUF EINEM LEBEN", [STR_ACH_41_DESC] = "BESIEGE EINEN BOSS AUF HOELLE MIT 1 HERZ",
+        [STR_ACH_42_TITLE] = "OHNE HILFE", [STR_ACH_42_DESC] = "ERREICHE 5000 AUF HOELLE OHNE POWERUPS",
+        [STR_ACH_43_TITLE] = "LEGENDE", [STR_ACH_43_DESC] = "SCHALTE ALLE ERFOLGE FREI",
         [STR_TOUCH_BACK] = "< HIER TIPPEN ZURUECK >",
         [STR_ACH_HINT] = "ERFOLG TIPPEN FUER DETAILS",
         [STR_ACH_STATUS_UNLOCKED] = "STATUS: FREIGESCHALTET (OK)",
@@ -431,8 +573,8 @@ void clearAllHighScoresPC() {
 void saveAchievementsPC() {
     FILE *f = fopen(PlatformGetDataPath("achievements.dat"), "wb");
     if (f) {
-        fwrite(g_achievements_unlocked, sizeof(bool), 30, f);
-        fwrite(g_achievement_progress, sizeof(int), 30, f);
+        fwrite(g_achievements_unlocked, sizeof(bool), NUM_ACHIEVEMENTS, f);
+        fwrite(g_achievement_progress, sizeof(int), NUM_ACHIEVEMENTS, f);
         fclose(f);
     }
 }
@@ -440,8 +582,20 @@ void saveAchievementsPC() {
 void loadAchievementsPC() {
     FILE *f = fopen(PlatformGetDataPath("achievements.dat"), "rb");
     if (f) {
-        fread(g_achievements_unlocked, sizeof(bool), 30, f);
-        fread(g_achievement_progress, sizeof(int), 30, f);
+        fseek(f, 0, SEEK_END);
+        long sz = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (sz == (long)(sizeof(bool) * 30 + sizeof(int) * 30)) {
+            fread(g_achievements_unlocked, sizeof(bool), 30, f);
+            fread(g_achievement_progress, sizeof(int), 30, f);
+            for (int i = 30; i < NUM_ACHIEVEMENTS; i++) {
+                g_achievements_unlocked[i] = false;
+                g_achievement_progress[i] = 0;
+            }
+        } else {
+            fread(g_achievements_unlocked, sizeof(bool), NUM_ACHIEVEMENTS, f);
+            fread(g_achievement_progress, sizeof(int), NUM_ACHIEVEMENTS, f);
+        }
         fclose(f);
     }
 }
@@ -596,7 +750,7 @@ int CountAchievementBits(int value) {
 }
 
 void UnlockAchievement(int index) {
-    if (index < 0 || index >= 30) return;
+    if (index < 0 || index >= NUM_ACHIEVEMENTS) return;
 
     if (!g_achievements_unlocked[index]) {
         g_achievements_unlocked[index] = true;
@@ -1024,6 +1178,14 @@ static void GameUpdate(void)
                 score = 0; px = 110; py = 75; dir_x = 0; dir_y = -1; p_type = 0; p_up.active = 0;
                 slowmo_timer = 0; nuke_timer = 0; dash_cd = 0; dash_invincibility = 0; death_timer = 0; combo = 1; combo_timer = 0; wave = 1;
                 hell_no_damage_frames = 0; player_took_hit_this_wave = false;
+                g_waves_without_damage_streak = 0;
+                g_boss_dash_used = false;
+                g_consecutive_bullets_dodged = 0;
+                g_divisor_combo_active = false;
+                g_divisor_fragments_left = 0;
+                g_divisor_combo_timer = 0;
+                g_powerups_picked_this_wave = 0;
+                g_powerups_picked_this_run = 0;
                 for(int e_idx=0; e_idx<MAX_ENEMIES; e_idx++) enemies[e_idx].active = 0;
                 for(int b_idx=0; b_idx<MAX_BULLETS; b_idx++) bullets[b_idx].active = 0;
                 for(int eb_idx=0; eb_idx<MAX_E_BULLETS; eb_idx++) e_bullets[eb_idx].active = 0;
@@ -1440,9 +1602,9 @@ static void GameUpdate(void)
                         if (ach_scroll_row < 0) ach_scroll_row = 0;
                         selected_ach_index = ach_scroll_row * 4;
                         show_ach_details = false;
-                    } else if (mouse_wheel < 0 && ach_scroll_row < 6) {
+                    } else if (mouse_wheel < 0 && ach_scroll_row < 10) {
                         ach_scroll_row += 2;
-                        if (ach_scroll_row > 6) ach_scroll_row = 6;
+                        if (ach_scroll_row > 10) ach_scroll_row = 10;
                         selected_ach_index = ach_scroll_row * 4;
                         show_ach_details = false;
                     }
@@ -1461,9 +1623,9 @@ static void GameUpdate(void)
                         }
                     } else if (mouse_y >= 94 && mouse_y <= 136) {
                         // Triángulo Abajo: baja de página si no está en la última página
-                        if (ach_scroll_row < 6) {
+                        if (ach_scroll_row < 10) {
                             ach_scroll_row += 2;
-                            if (ach_scroll_row > 6) ach_scroll_row = 6;
+                            if (ach_scroll_row > 10) ach_scroll_row = 10;
                             selected_ach_index = ach_scroll_row * 4;
                             show_ach_details = false;
                             PlaySfx(sndHit);
@@ -1476,9 +1638,9 @@ static void GameUpdate(void)
                         if (show_ach_details) show_ach_details = false;
                     }
                     if (s_touch_drag_ach <= -20.0f) {
-                        if (ach_scroll_row < 6) {
+                        if (ach_scroll_row < 10) {
                             ach_scroll_row += 2;
-                            if (ach_scroll_row > 6) ach_scroll_row = 6;
+                            if (ach_scroll_row > 10) ach_scroll_row = 10;
                             selected_ach_index = ach_scroll_row * 4;
                             show_ach_details = false;
                             PlaySfx(sndHit);
@@ -1496,17 +1658,17 @@ static void GameUpdate(void)
                     }
                 }
 
-                if (m_left)  { selected_ach_index = (selected_ach_index > 0) ? selected_ach_index - 1 : 29; PlaySfx(sndHit); }
-                if (m_right) { selected_ach_index = (selected_ach_index < 29) ? selected_ach_index + 1 : 0; PlaySfx(sndHit); }
+                if (m_left)  { selected_ach_index = (selected_ach_index > 0) ? selected_ach_index - 1 : (NUM_ACHIEVEMENTS - 1); PlaySfx(sndHit); }
+                if (m_right) { selected_ach_index = (selected_ach_index < NUM_ACHIEVEMENTS - 1) ? selected_ach_index + 1 : 0; PlaySfx(sndHit); }
                 if (m_up)    { selected_ach_index = (selected_ach_index >= 4) ? selected_ach_index - 4 : selected_ach_index; PlaySfx(sndHit); }
-                if (m_down)  { selected_ach_index = (selected_ach_index + 4 < 30) ? selected_ach_index + 4 : selected_ach_index; PlaySfx(sndHit); }
+                if (m_down)  { selected_ach_index = (selected_ach_index + 4 < NUM_ACHIEVEMENTS) ? selected_ach_index + 4 : selected_ach_index; PlaySfx(sndHit); }
 
                 if (m_left || m_right || m_up || m_down) {
                     int sel_row = selected_ach_index / 4;
                     if (sel_row < ach_scroll_row) ach_scroll_row = (sel_row / 2) * 2;
                     if (sel_row >= ach_scroll_row + 2) ach_scroll_row = (sel_row / 2) * 2;
                     if (ach_scroll_row < 0) ach_scroll_row = 0;
-                    if (ach_scroll_row > 6) ach_scroll_row = 6;
+                    if (ach_scroll_row > 10) ach_scroll_row = 10;
                 }
 
                 if (!s_is_swiping_ach && (mouse_x < 204) && mouse_clicked) {
@@ -1516,10 +1678,10 @@ static void GameUpdate(void)
                     } else {
                         for (int r = 0; r < 2; r++) {
                             int row_idx = ach_scroll_row + r;
-                            if (row_idx >= 8) break;
+                            if (row_idx >= 11) break;
                             for (int col = 0; col < 4; col++) {
                                 int ach_i = row_idx * 4 + col;
-                                if (ach_i >= 30) break;
+                                if (ach_i >= NUM_ACHIEVEMENTS) break;
                                 int bx = 16 + (col * 48);
                                 int by = 38 + (r * 44);
                                 if (mouse_x >= bx && mouse_x <= bx + 42 && mouse_y >= by && mouse_y <= by + 40) {
@@ -1639,6 +1801,14 @@ static void GameUpdate(void)
                     score = 0; px = 110; py = 75; dir_x = 0; dir_y = -1; p_type = 0; p_up.active = 0;
                     slowmo_timer = 0; nuke_timer = 0; dash_cd = 0; dash_invincibility = 0; death_timer = 0; combo = 1; combo_timer = 0; wave = 1;
                     hell_no_damage_frames = 0; player_took_hit_this_wave = false;
+                    g_waves_without_damage_streak = 0;
+                    g_boss_dash_used = false;
+                    g_consecutive_bullets_dodged = 0;
+                    g_divisor_combo_active = false;
+                    g_divisor_fragments_left = 0;
+                    g_divisor_combo_timer = 0;
+                    g_powerups_picked_this_wave = 0;
+                    g_powerups_picked_this_run = 0;
                     for(int e_idx=0; e_idx<MAX_ENEMIES; e_idx++) enemies[e_idx].active = 0;
                     for(int b_idx=0; b_idx<MAX_BULLETS; b_idx++) bullets[b_idx].active = 0;
                     for(int eb_idx=0; eb_idx<MAX_E_BULLETS; eb_idx++) e_bullets[eb_idx].active = 0;
@@ -1767,6 +1937,7 @@ static void GameUpdate(void)
                             }
                             int nuke_points = (enemies[k].type == 3) ? 500 : (enemies[k].type == 4 ? 200 : (enemies[k].type == 7 ? 150 : (enemies[k].type == 6 ? 50 : 100)));
                             score += nuke_points * combo;
+                            CheckScoreAchievements(score, player_hp, current_difficulty);
                             if (combo < 5 && p_type != 8 && p_type != 13) combo++;
                         }
                     }
@@ -1811,6 +1982,11 @@ static void GameUpdate(void)
                     UnlockAchievement(ACH_MODO_DIOS);
                 }
 
+                if (g_divisor_combo_timer > 0) {
+                    g_divisor_combo_timer--;
+                    if (g_divisor_combo_timer <= 0) g_divisor_combo_active = false;
+                }
+
                 bool is_sprinting = IsKeyDown(g_keys.key_turbo) || (pad_active && IsGamepadButtonDown(pad_id, g_pad.btn_turbo)) || mobile.turbo_down;
                 int speed = is_sprinting ? 4 : 2;
                 int mx_dir = 0, my_dir = 0;
@@ -1833,6 +2009,12 @@ static void GameUpdate(void)
                     dash_cd = 60;
                     invincibility = 15;
                     dash_invincibility = 15;
+                    for (int b_chk = 0; b_chk < MAX_ENEMIES; b_chk++) {
+                        if (enemies[b_chk].active && enemies[b_chk].type == 3) {
+                            g_boss_dash_used = true;
+                            break;
+                        }
+                    }
                 }
 
                 bool is_aim_locked = IsKeyDown(g_keys.key_aim) || (pad_active && IsGamepadButtonDown(pad_id, g_pad.btn_aim)) || mobile.aim_down;
@@ -1907,6 +2089,8 @@ static void GameUpdate(void)
                     } else {
                         if (px < p_up.x + 8 && px + 10 > p_up.x && py < p_up.y + 8 && py + 10 > p_up.y) {
                             p_up.active = 0;
+                            g_powerups_picked_this_wave++;
+                            g_powerups_picked_this_run++;
 
                             // EMPODERATE: primer power-up recogido
                             if (!g_achievements_unlocked[ACH_EMPODERATE]) {
@@ -1979,6 +2163,12 @@ static void GameUpdate(void)
                                             if (g_achievement_progress[ACH_DEMASIADO_RAPIDO] >= 10)
                                                 UnlockAchievement(ACH_DEMASIADO_RAPIDO);
                                         }
+                                        if (p_type == 10) {
+                                            g_achievement_progress[ACH_A_CONTRACORRIENTE]++;
+                                            if (g_achievement_progress[ACH_A_CONTRACORRIENTE] >= 10) {
+                                                UnlockAchievement(ACH_A_CONTRACORRIENTE);
+                                            }
+                                        }
                                         // TIEMPO MUERTO (Slow-Mo kills) -> Índice 17 correcto
                                         if (slowmo_timer > 0) {
                                             g_achievement_progress[ACH_TIEMPO_MUERTO]++;
@@ -2004,10 +2194,38 @@ static void GameUpdate(void)
                                         if (enemies[en_idx].type == 3) {
                                             g_achievement_progress[ACH_CAZADOR_JEFES]++;
                                             if (g_achievement_progress[ACH_CAZADOR_JEFES] >= 5) UnlockAchievement(ACH_CAZADOR_JEFES);
+                                            if (!g_boss_dash_used) UnlockAchievement(ACH_NI_UN_PASO_ATRAS);
+                                            if (current_difficulty == 3 && player_hp == 1) UnlockAchievement(ACH_A_UNA_VIDA);
                                         }
                                         if (enemies[en_idx].type == 9) {
                                             g_achievement_progress[ACH_TELETRANSP]++;
                                             if (g_achievement_progress[ACH_TELETRANSP] >= 10) UnlockAchievement(ACH_TELETRANSP);
+                                            if (enemies[en_idx].timer < 60) UnlockAchievement(ACH_DONDE_ESTA);
+                                        }
+                                        if (enemies[en_idx].type == 7) {
+                                            if (p_type == 0 && abs(px - enemies[en_idx].x) <= 22 && abs(py - enemies[en_idx].y) <= 22) {
+                                                UnlockAchievement(ACH_PISALO);
+                                            }
+                                            for (int other_idx = 0; other_idx < MAX_ENEMIES; other_idx++) {
+                                                if (other_idx != en_idx && enemies[other_idx].active) {
+                                                    int dx = enemies[other_idx].x - enemies[en_idx].x;
+                                                    int dy = enemies[other_idx].y - enemies[en_idx].y;
+                                                    if (dx * dx + dy * dy <= 28 * 28) {
+                                                        enemies[other_idx].hp -= 2;
+                                                        if (enemies[other_idx].hp <= 0) {
+                                                            enemies[other_idx].active = 0;
+                                                            UnlockAchievement(ACH_KABOOM);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (enemies[en_idx].type == 6 && g_divisor_combo_active) {
+                                            g_divisor_fragments_left--;
+                                            if (g_divisor_fragments_left <= 0) {
+                                                UnlockAchievement(ACH_DIVIDE_Y_VENCERAS);
+                                                g_divisor_combo_active = false;
+                                            }
                                         }
 
                                         enemies[en_idx].active = 0;
@@ -2025,7 +2243,7 @@ static void GameUpdate(void)
                                         int pts = base_pts * combo;
                                         score += pts;
 
-                                        if (player_hp == 1 && score >= 1000) UnlockAchievement(ACH_ULTIMO_ALIENTO);
+                                        CheckScoreAchievements(score, player_hp, current_difficulty);
 
                                         if (enemies[en_idx].type == 3) screen_shake_timer = 25;
 
@@ -2038,6 +2256,9 @@ static void GameUpdate(void)
                                         PlaySfx(sndExplo);
 
                                         if (enemies[en_idx].type == 5) {
+                                            g_divisor_combo_active = true;
+                                            g_divisor_fragments_left = 2;
+                                            g_divisor_combo_timer = 300;
                                             int spawned_minis = 0;
                                             for(int m_slot = 0; m_slot < MAX_ENEMIES && spawned_minis < 2; m_slot++) {
                                                 if (!enemies[m_slot].active) {
@@ -2069,11 +2290,19 @@ static void GameUpdate(void)
                         }
                         if (e_bullets[eb_idx].x > 240 || e_bullets[eb_idx].x < 0 || e_bullets[eb_idx].y < 16 || e_bullets[eb_idx].y > 160) {
                             e_bullets[eb_idx].active = 0;
+                            g_consecutive_bullets_dodged++;
+                            if (g_consecutive_bullets_dodged >= 25) {
+                                UnlockAchievement(ACH_BAILANDO_ENTRE_BALAS);
+                            }
                         } else {
                             if (p_type == 6) {
                                 e_bullets[eb_idx].active = 0;
                             } else if (dash_invincibility > 0 && px < e_bullets[eb_idx].x + 4 && px + 10 > e_bullets[eb_idx].x && py < e_bullets[eb_idx].y + 4 && py + 10 > e_bullets[eb_idx].y) {
                                 e_bullets[eb_idx].active = 0;
+                                g_consecutive_bullets_dodged++;
+                                if (g_consecutive_bullets_dodged >= 25) {
+                                    UnlockAchievement(ACH_BAILANDO_ENTRE_BALAS);
+                                }
                                 g_achievement_progress[ACH_ESQUIVE_PERFECTO]++;
                                 if (g_achievement_progress[ACH_ESQUIVE_PERFECTO] >= 10)
                                     UnlockAchievement(ACH_ESQUIVE_PERFECTO);
@@ -2081,6 +2310,8 @@ static void GameUpdate(void)
                                 e_bullets[eb_idx].active = 0;
                                 player_took_hit_this_wave = true;
                                 hell_no_damage_frames = 0;
+                                g_waves_without_damage_streak = 0;
+                                g_consecutive_bullets_dodged = 0;
                                 if (p_type == 1) {
                                     PlaySfx(sndHurt);
                                     p_type = 0; p_timer = 0;
@@ -2100,8 +2331,23 @@ static void GameUpdate(void)
                 int old_wave = wave;
                 wave = 1 + (score / (current_difficulty == 0 ? 4000 : (current_difficulty == 1 ? 3000 : (current_difficulty == 2 ? 2000 : 1200))));
                 if (wave > old_wave) {
-                    if (!player_took_hit_this_wave) UnlockAchievement(ACH_INTACTO);
+                    if (!player_took_hit_this_wave) {
+                        UnlockAchievement(ACH_INTACTO);
+                        g_waves_without_damage_streak++;
+                        if (g_waves_without_damage_streak >= 3) {
+                            UnlockAchievement(ACH_SIN_RASGUNOS);
+                        }
+                    } else {
+                        g_waves_without_damage_streak = 0;
+                    }
+                    if (current_difficulty == 2 && g_powerups_picked_this_wave == 0) {
+                        UnlockAchievement(ACH_NO_ERA_TAN_DIFICIL);
+                    }
+                    if (current_difficulty == 3 && wave >= 15) {
+                        UnlockAchievement(ACH_INFIERNO_PURO);
+                    }
                     player_took_hit_this_wave = false;
+                    g_powerups_picked_this_wave = 0;
                 }
 
                 if (current_difficulty == 3) {
@@ -2136,6 +2382,7 @@ static void GameUpdate(void)
                             if (is_boss && !boss_exists) {
                                 enemies[e_slot].type = 3; enemies[e_slot].hp = (current_difficulty == 3 ? 25 : 15) + wave;
                                 enemies[e_slot].x = 110; enemies[e_slot].y = 16;
+                                g_boss_dash_used = false;
                             } else {
                                 int r;
                                 do {
@@ -2217,6 +2464,7 @@ static void GameUpdate(void)
                             }
                             int base_pts = (enemies[en_idx].type == 3) ? 500 : (enemies[en_idx].type == 4 ? 200 : (enemies[en_idx].type == 7 ? 150 : (enemies[en_idx].type == 6 ? 50 : 100)));
                             score += base_pts * combo;
+                            CheckScoreAchievements(score, player_hp, current_difficulty);
                             if (combo < 5 && p_type != 8 && p_type != 13) combo++;
                             combo_timer = 300;
                             PlaySfx(sndExplo);
@@ -2333,8 +2581,6 @@ static void GameUpdate(void)
                         }
 
                         if ((invincibility == 0 || p_type == 6) && px < enemies[en_idx].x + 10 && px + 10 > enemies[en_idx].x && py < enemies[en_idx].y + 10 && py + 10 > enemies[en_idx].y) {
-                            player_took_hit_this_wave = true;
-                            hell_no_damage_frames = 0;
                             if (p_type == 6) {
                                 enemies[en_idx].active = 0;
                                 for(int ex_slot = 0; ex_slot < MAX_EXPLO; ex_slot++) {
@@ -2350,6 +2596,8 @@ static void GameUpdate(void)
                                 int pts = base_pts * combo;
                                 score += pts;
 
+                                CheckScoreAchievements(score, player_hp, current_difficulty);
+
                                 char pts_buf[20];
                                 snprintf(pts_buf, sizeof(pts_buf), "+%d", pts);
                                 SPAWN_FTEXT((float)enemies[en_idx].x, (float)enemies[en_idx].y - 8, pts_buf, C_YELLOW);
@@ -2358,6 +2606,10 @@ static void GameUpdate(void)
                                 combo_timer = 300;
                                 PlaySfx(sndExplo);
                             } else {
+                                player_took_hit_this_wave = true;
+                                hell_no_damage_frames = 0;
+                                g_waves_without_damage_streak = 0;
+                                g_consecutive_bullets_dodged = 0;
                                 if (enemies[en_idx].type == 7) {
                                     enemies[en_idx].active = 0;
                                     for(int ex_slot = 0; ex_slot < MAX_EXPLO; ex_slot++) {
@@ -2548,33 +2800,12 @@ static void GameUpdate(void)
                     DrawScoreCustom(loadHighScorePC(r_idx), 125, row_y + 1, GBA_COLOR(31, 28, 0));
                 }
             } else {
-                StringId ach_titles[30] = { 
-                    STR_ACH_1_TITLE, STR_ACH_2_TITLE, STR_ACH_3_TITLE, STR_ACH_4_TITLE, 
-                    STR_ACH_5_TITLE, STR_ACH_6_TITLE, STR_ACH_7_TITLE, STR_ACH_8_TITLE, 
-                    STR_ACH_9_TITLE, STR_ACH_10_TITLE, STR_ACH_11_TITLE, STR_ACH_12_TITLE, 
-                    STR_ACH_13_TITLE, STR_ACH_14_TITLE, STR_ACH_15_TITLE, STR_ACH_16_TITLE,
-                    STR_ACH_17_TITLE, STR_ACH_18_TITLE, STR_ACH_19_TITLE, STR_ACH_20_TITLE,
-                    STR_ACH_21_TITLE, STR_ACH_22_TITLE, STR_ACH_23_TITLE, STR_ACH_24_TITLE,
-                    STR_ACH_25_TITLE, STR_ACH_26_TITLE, STR_ACH_27_TITLE, STR_ACH_28_TITLE,
-                    STR_ACH_29_TITLE, STR_ACH_30_TITLE
-                };
-                StringId ach_descs[30] = { 
-                    STR_ACH_1_DESC, STR_ACH_2_DESC, STR_ACH_3_DESC, STR_ACH_4_DESC, 
-                    STR_ACH_5_DESC, STR_ACH_6_DESC, STR_ACH_7_DESC, STR_ACH_8_DESC, 
-                    STR_ACH_9_DESC, STR_ACH_10_DESC, STR_ACH_11_DESC, STR_ACH_12_DESC, 
-                    STR_ACH_13_DESC, STR_ACH_14_DESC, STR_ACH_15_DESC, STR_ACH_16_DESC,
-                    STR_ACH_17_DESC, STR_ACH_18_DESC, STR_ACH_19_DESC, STR_ACH_20_DESC,
-                    STR_ACH_21_DESC, STR_ACH_22_DESC, STR_ACH_23_DESC, STR_ACH_24_DESC,
-                    STR_ACH_25_DESC, STR_ACH_26_DESC, STR_ACH_27_DESC, STR_ACH_28_DESC,
-                    STR_ACH_29_DESC, STR_ACH_30_DESC
-                };
-
                 for (int r = 0; r < 2; r++) {
                     int row_idx = ach_scroll_row + r;
-                    if (row_idx >= 8) break;
+                    if (row_idx >= 11) break;
                     for (int col = 0; col < 4; col++) {
                         int ach_idx = row_idx * 4 + col;
-                        if (ach_idx >= 30) break;
+                        if (ach_idx >= NUM_ACHIEVEMENTS) break;
 
                         int bx = 16 + (col * 48);
                         int by = 38 + (r * 44);
@@ -2592,7 +2823,7 @@ static void GameUpdate(void)
                             DrawRectangle(bx + 17, by + 11, 6, 5, GBA_COLOR(18, 18, 18));
                             DrawRectangle(bx + 18, by + 12, 4, 4, GBA_COLOR(2, 6, 12));
                         } else {
-                            Enemy preview_enemy = { .x = bx + 15, .y = by + 14, .type = ach_idx % 7, .active = 1, .hp = 1 };
+                            Enemy preview_enemy = { .x = bx + 15, .y = by + 14, .type = ach_enemy_types[ach_idx], .active = 1, .hp = 1 };
                             DrawEnemyPC(&preview_enemy, frame_count);
                         }
                     }
@@ -2608,7 +2839,11 @@ static void GameUpdate(void)
                 DrawTriangle(a1_up, a2_up, a3_up, ach_up_col);
                 DrawTriangleLines(a1_up, a2_up, a3_up, ach_up_border);
 
-                bool can_ach_dn = (ach_scroll_row < 6);
+                char page_buf[16];
+                snprintf(page_buf, sizeof(page_buf), "%d/6", (ach_scroll_row / 2) + 1);
+                DrawStringCustom(page_buf, 216, 87, C_CYAN, 1);
+
+                bool can_ach_dn = (ach_scroll_row < 10);
                 Color ach_dn_col = can_ach_dn ? C_YELLOW : GBA_COLOR(6, 8, 12);
                 Color ach_dn_border = can_ach_dn ? WHITE : GBA_COLOR(10, 14, 18);
                 Vector2 a1_dn = { 213, 106 };
@@ -2621,8 +2856,8 @@ static void GameUpdate(void)
                 if (show_ach_details) {
                     DrawRectangle(12, 70, 200, 68, GBA_COLOR(1, 4, 8));
                     DrawRectangleLines(12, 70, 200, 68, g_achievements_unlocked[selected_ach_index] ? C_GREEN : C_CYAN);
-                    DrawStringCustom(T(ach_titles[selected_ach_index]), 18, 76, g_achievements_unlocked[selected_ach_index] ? C_GREEN : C_YELLOW, 1);
-                    DrawStringCustom(T(ach_descs[selected_ach_index]), 18, 90, WHITE, 1);
+                    DrawStringCustom(T(GetAchTitleId(selected_ach_index)), 18, 76, g_achievements_unlocked[selected_ach_index] ? C_GREEN : C_YELLOW, 1);
+                    DrawStringCustom(T(GetAchDescId(selected_ach_index)), 18, 90, WHITE, 1);
 
                     char prog_buf[48];
                     if (g_achievements_unlocked[selected_ach_index]) {
@@ -3118,7 +3353,7 @@ static void GameUpdate(void)
 
         // --- POP-UP DE LOGRO DESBLOQUEADO (Centrado bajo la línea celeste del HUD con animación desde arriba) ---
         if (g_achievement_toast_timer > 0) {
-            int toast_w = 114;
+            int toast_w = 115;
             int toast_h = 24;
             int toast_x = (SCREEN_W - toast_w) / 2;
             int resting_y = 18; // Justo bajo la línea celeste (y = 15)
@@ -3141,7 +3376,8 @@ static void GameUpdate(void)
             DrawRectangleLines(toast_x, toast_y, toast_w, toast_h, C_GREEN);
             
             DrawRectangle(toast_x + 4, toast_y + 4, 16, 16, GBA_COLOR(2, 6, 12));
-            Enemy t_enemy = { .x = toast_x + 6, .y = toast_y + 6, .type = 0, .active = 1, .hp = 1 };
+            int ach_enemy = (g_latest_unlocked_ach >= 0 && g_latest_unlocked_ach < NUM_ACHIEVEMENTS) ? ach_enemy_types[g_latest_unlocked_ach] : 0;
+            Enemy t_enemy = { .x = toast_x + 6, .y = toast_y + 6, .type = ach_enemy, .active = 1, .hp = 1 };
             DrawEnemyPC(&t_enemy, frame_count);
 
             const char* ach_header = "!LOGRO NUEVO!";
@@ -3151,17 +3387,7 @@ static void GameUpdate(void)
             else if (g_config.language == 4) ach_header = "NEUER ERFOLG!";
 
             DrawStringCustom(ach_header, toast_x + 24, toast_y + 5, C_YELLOW, 1);
-            StringId titles[30] = { 
-                STR_ACH_1_TITLE, STR_ACH_2_TITLE, STR_ACH_3_TITLE, STR_ACH_4_TITLE, 
-                STR_ACH_5_TITLE, STR_ACH_6_TITLE, STR_ACH_7_TITLE, STR_ACH_8_TITLE, 
-                STR_ACH_9_TITLE, STR_ACH_10_TITLE, STR_ACH_11_TITLE, STR_ACH_12_TITLE, 
-                STR_ACH_13_TITLE, STR_ACH_14_TITLE, STR_ACH_15_TITLE, STR_ACH_16_TITLE,
-                STR_ACH_17_TITLE, STR_ACH_18_TITLE, STR_ACH_19_TITLE, STR_ACH_20_TITLE,
-                STR_ACH_21_TITLE, STR_ACH_22_TITLE, STR_ACH_23_TITLE, STR_ACH_24_TITLE,
-                STR_ACH_25_TITLE, STR_ACH_26_TITLE, STR_ACH_27_TITLE, STR_ACH_28_TITLE,
-                STR_ACH_29_TITLE, STR_ACH_30_TITLE
-            };
-            DrawStringCustom(T(titles[g_latest_unlocked_ach]), toast_x + 24, toast_y + 14, WHITE, 1);
+            DrawStringCustom(T(GetAchTitleId(g_latest_unlocked_ach)), toast_x + 24, toast_y + 14, WHITE, 1);
 
             // Redibujar el HUD encima si estamos en partida para que la animación nunca tape el HUD
             if (state == 1 || state == 9 || state == 3) {
