@@ -2699,9 +2699,19 @@ static void GameUpdate(void)
             }
         }
         else if (state == 0) {
+            float t_glitch = GetTitleBgmGlitchIntensity();
+            int logo_gx = 0, logo_gy = 0;
+            if (t_glitch > 0.15f && (rand() % 100 < (int)(t_glitch * 70))) {
+                logo_gx = (rand() % 7) - 3;
+                if (t_glitch > 0.5f) logo_gy = (rand() % 3) - 1;
+            }
             DrawRectangle(0, 0, SCREEN_W, SCREEN_H, C_TITLE_BG);
-            for(int s = 0; s < MAX_TITLE_STARS; s++) DrawRectangle(title_stars[s].x, title_stars[s].y, 1, 1, title_stars[s].color);
-            DrawAstralliticLogoPC(16, 26);
+            for(int s = 0; s < MAX_TITLE_STARS; s++) {
+                if (!(t_glitch > 0.3f && (rand() % 10 < 3))) {
+                    DrawRectangle(title_stars[s].x, title_stars[s].y, 1, 1, title_stars[s].color);
+                }
+            }
+            DrawAstralliticLogoPC(16 + logo_gx, 26 + logo_gy);
             DrawRectangle(35, 70, 170, 1, GBA_COLOR(10, 20, 30));
             DrawStringCustom("2026 ALEJADEV", 4, 148, GBA_COLOR(10, 18, 26), 1);
 #if defined(PLATFORM_IOS)
@@ -2727,9 +2737,19 @@ static void GameUpdate(void)
             }
         }
         else if (state == 13) { 
+            float t_glitch = GetTitleBgmGlitchIntensity();
+            int logo_gx = 0, logo_gy = 0;
+            if (t_glitch > 0.15f && (rand() % 100 < (int)(t_glitch * 70))) {
+                logo_gx = (rand() % 7) - 3;
+                if (t_glitch > 0.5f) logo_gy = (rand() % 3) - 1;
+            }
             DrawRectangle(0, 0, SCREEN_W, SCREEN_H, C_TITLE_BG);
-            for(int s = 0; s < MAX_TITLE_STARS; s++) DrawRectangle(title_stars[s].x, title_stars[s].y, 1, 1, title_stars[s].color);
-            DrawAstralliticLogoPC(16, 26);
+            for(int s = 0; s < MAX_TITLE_STARS; s++) {
+                if (!(t_glitch > 0.3f && (rand() % 10 < 3))) {
+                    DrawRectangle(title_stars[s].x, title_stars[s].y, 1, 1, title_stars[s].color);
+                }
+            }
+            DrawAstralliticLogoPC(16 + logo_gx, 26 + logo_gy);
             DrawRectangle(35, 70, 170, 1, GBA_COLOR(10, 20, 30));
             DrawStringCustom("2026 ALEJADEV", 4, 148, GBA_COLOR(10, 18, 26), 1);
 #if defined(PLATFORM_IOS)
@@ -3421,14 +3441,86 @@ static void GameUpdate(void)
             final_offset_y += (float)((rand() % 5) - 2) * scale_val * 0.75f;
         }
 
+        float t_glitch = (state == 0 || state == 13) ? GetTitleBgmGlitchIntensity() : 0.0f;
+        float base_jitter_x = 0.0f;
+        float base_jitter_y = 0.0f;
+        if (t_glitch > 0.45f && (rand() % 100 < (int)(t_glitch * 50))) {
+            base_jitter_x = (float)((rand() % 5) - 2) * scale_val * t_glitch;
+            base_jitter_y = (float)((rand() % 3) - 1) * scale_val * t_glitch;
+        }
+
+        // 1. Textura base con posible micro-temblor
         DrawTexturePro(
             target.texture,
             (Rectangle){ 0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height },
-            (Rectangle){ final_offset_x, final_offset_y, draw_w, draw_h },
+            (Rectangle){ final_offset_x + base_jitter_x, final_offset_y + base_jitter_y, draw_w, draw_h },
             (Vector2){ 0.0f, 0.0f },
             0.0f,
             WHITE
         );
+
+        // 2. Capas de Glitch si la música está por terminar o resincronizando
+        if (t_glitch > 0.05f) {
+            int num_slices = (int)(t_glitch * 9.0f) + 2;
+            for (int sl = 0; sl < num_slices; sl++) {
+                int slice_y = rand() % (SCREEN_H - 12);
+                int slice_h = (rand() % 10) + 3;
+                float shift_x = (float)((rand() % 17) - 8) * t_glitch * scale_val;
+                float slice_dest_y = final_offset_y + ((float)slice_y / (float)SCREEN_H) * draw_h;
+                float slice_dest_h = ((float)slice_h / (float)SCREEN_H) * draw_h;
+                if (t_glitch > 0.25f) {
+                    float ghost_offset = (3.0f * t_glitch * scale_val);
+                    // Split cromático canal Rojo (desplazado a la izquierda)
+                    DrawTexturePro(
+                        target.texture,
+                        (Rectangle){ 0.0f, (float)slice_y, (float)SCREEN_W, (float)-slice_h },
+                        (Rectangle){ final_offset_x + shift_x - ghost_offset, slice_dest_y, draw_w, slice_dest_h },
+                        (Vector2){ 0.0f, 0.0f },
+                        0.0f,
+                        (Color){ 255, 60, 60, (unsigned char)(160 * t_glitch) }
+                    );
+                    // Split cromático canal Cian (desplazado a la derecha)
+                    DrawTexturePro(
+                        target.texture,
+                        (Rectangle){ 0.0f, (float)slice_y, (float)SCREEN_W, (float)-slice_h },
+                        (Rectangle){ final_offset_x + shift_x + ghost_offset, slice_dest_y, draw_w, slice_dest_h },
+                        (Vector2){ 0.0f, 0.0f },
+                        0.0f,
+                        (Color){ 60, 255, 255, (unsigned char)(160 * t_glitch) }
+                    );
+                }
+                // Tira desplazada normal
+                DrawTexturePro(
+                    target.texture,
+                    (Rectangle){ 0.0f, (float)slice_y, (float)SCREEN_W, (float)-slice_h },
+                    (Rectangle){ final_offset_x + shift_x, slice_dest_y, draw_w, slice_dest_h },
+                    (Vector2){ 0.0f, 0.0f },
+                    0.0f,
+                    WHITE
+                );
+            }
+            // 3. Ruido estático digital / cortes de cinta VHS
+            if (t_glitch > 0.2f) {
+                int num_bars = (int)(t_glitch * 5.0f) + 1;
+                for (int b = 0; b < num_bars; b++) {
+                    int bar_y = (int)final_offset_y + (rand() % (int)draw_h);
+                    int bar_h = (rand() % (int)(2 * scale_val + 1)) + 1;
+                    int bar_w = (rand() % (int)(draw_w * 0.7f)) + (int)(draw_w * 0.2f);
+                    int bar_x = (int)final_offset_x + (rand() % (int)(draw_w - bar_w));
+                    Color b_col = (rand() % 2 == 0) ? (Color){ 0, 255, 255, (unsigned char)(130 * t_glitch) } : (Color){ 255, 255, 255, (unsigned char)(150 * t_glitch) };
+                    DrawRectangle(bar_x, bar_y, bar_w, bar_h, b_col);
+                }
+            }
+            // 4. Haz / destello de tubo CRT al recomenzar la pista
+            float snap = GetTitleBgmSnap();
+            if (snap > 0.05f) {
+                int flash_alpha = (int)(snap * 220.0f);
+                if (flash_alpha > 255) flash_alpha = 255;
+                int center_y = (int)(final_offset_y + (draw_h * 0.5f));
+                int beam_h = (int)(scale_val * (2.0f + (1.0f - snap) * 6.0f));
+                DrawRectangle((int)final_offset_x, center_y - (beam_h / 2), (int)draw_w, beam_h, (Color){ 255, 255, 255, (unsigned char)flash_alpha });
+            }
+        }
 
         if (g_config.crt_filter > 0 && crtShader.id > 0) EndShaderMode();
 

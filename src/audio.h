@@ -20,4 +20,7 @@ void UpdateGameBgm();
 void StopAllBgm();
 void PlaySfx(Sound s);
 
+float GetTitleBgmGlitchIntensity(void);
+float GetTitleBgmSnap(void);
+
 #endif

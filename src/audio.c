@@ -10,6 +10,10 @@ Sound bgmTracks[5] = {0};
 int bgmLoaded[5] = {0};
 int currentBgmPlaying = -1;
 
+static float g_title_bgm_duration = 30.772f;
+static float g_title_bgm_timer = 0.0f;
+static float g_title_glitch_snap = 0.0f;
+
 void ApplyAudioVolumes() {
     float bgm_vol = (float)g_config.vol_bgm / 10.0f;
     float sfx_vol = (float)g_config.vol_sfx / 10.0f;
@@ -91,6 +95,9 @@ void TryLoadRawMusic(int index, const char* filename) {
         Wave wave = { .frameCount = (unsigned int)size, .sampleRate = 16000, .sampleSize = 16, .channels = 1, .data = pcm16 };
         bgmTracks[index] = LoadSoundFromWave(wave);
         bgmLoaded[index] = 1;
+        if (index == 0) {
+            g_title_bgm_duration = (float)size / 16000.0f;
+        }
         UnloadWave(wave);
     }
 }
@@ -260,22 +267,76 @@ void InitGameAudio() {
 void PlayGameBgm(int index) {
     if (g_config.vol_bgm == 0) return;
     if (currentBgmPlaying == index && index != -1 && bgmLoaded[index]) {
-        if (!IsSoundPlaying(bgmTracks[index])) PlaySound(bgmTracks[index]);
+        if (!IsSoundPlaying(bgmTracks[index])) {
+            PlaySound(bgmTracks[index]);
+            if (index == 0) {
+                g_title_bgm_timer = 0.0f;
+                g_title_glitch_snap = 0.0f;
+            }
+        }
         return;
     }
     if (currentBgmPlaying != -1 && bgmLoaded[currentBgmPlaying]) StopSound(bgmTracks[currentBgmPlaying]);
     currentBgmPlaying = index;
-    if (index != -1 && bgmLoaded[index]) PlaySound(bgmTracks[index]);
+    if (index != -1 && bgmLoaded[index]) {
+        PlaySound(bgmTracks[index]);
+        if (index == 0) {
+            g_title_bgm_timer = 0.0f;
+            g_title_glitch_snap = 0.0f;
+        }
+    }
 }
 
 void UpdateGameBgm() {
     if (g_config.vol_bgm == 0 || currentBgmPlaying == -1 || !bgmLoaded[currentBgmPlaying]) return;
-    if (!IsSoundPlaying(bgmTracks[currentBgmPlaying])) PlaySound(bgmTracks[currentBgmPlaying]);
+    if (currentBgmPlaying == 0) {
+        float dt = GetFrameTime();
+        if (dt > 0.1f) dt = 0.1f;
+        g_title_bgm_timer += dt;
+        if (g_title_glitch_snap > 0.0f) {
+            g_title_glitch_snap -= dt * 4.5f;
+            if (g_title_glitch_snap < 0.0f) g_title_glitch_snap = 0.0f;
+        }
+        if (!IsSoundPlaying(bgmTracks[0]) || g_title_bgm_timer >= g_title_bgm_duration) {
+            StopSound(bgmTracks[0]);
+            PlaySound(bgmTracks[0]);
+            g_title_bgm_timer = 0.0f;
+            g_title_glitch_snap = 1.0f; // Activa el destello de resincronización al recomenzar
+        }
+    } else {
+        if (!IsSoundPlaying(bgmTracks[currentBgmPlaying])) PlaySound(bgmTracks[currentBgmPlaying]);
+    }
 }
 
 void StopAllBgm() {
     if (currentBgmPlaying != -1 && bgmLoaded[currentBgmPlaying]) StopSound(bgmTracks[currentBgmPlaying]);
     currentBgmPlaying = -1;
+    g_title_bgm_timer = 0.0f;
+    g_title_glitch_snap = 0.0f;
+}
+
+float GetTitleBgmGlitchIntensity() {
+    if (g_config.vol_bgm == 0 || currentBgmPlaying != 0 || !bgmLoaded[0]) return 0.0f;
+    const float lead_time = 1.8f;
+    float remaining = g_title_bgm_duration - g_title_bgm_timer;
+    float intensity = 0.0f;
+    if (remaining <= lead_time && remaining > 0.0f) {
+        float progress = 1.0f - (remaining / lead_time);
+        intensity = progress * progress; // Curva suave hacia 1.0
+    } else if (remaining <= 0.0f) {
+        intensity = 1.0f;
+    }
+    if (g_title_glitch_snap > 0.0f) {
+        float snap_val = g_title_glitch_snap * 0.85f;
+        if (snap_val > intensity) intensity = snap_val;
+    }
+    if (intensity > 1.0f) intensity = 1.0f;
+    return intensity;
+}
+
+float GetTitleBgmSnap() {
+    if (g_config.vol_bgm == 0 || currentBgmPlaying != 0) return 0.0f;
+    return g_title_glitch_snap;
 }
 
 void PlaySfx(Sound s) {
