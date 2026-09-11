@@ -14,6 +14,15 @@ static float g_title_bgm_duration = 30.772f;
 static float g_title_bgm_timer = 0.0f;
 static float g_title_glitch_snap = 0.0f;
 
+static Sound readyJingleTones[READY_JINGLE_TONE_COUNT] = {0};
+static bool readyJingleLoaded[READY_JINGLE_TONE_COUNT] = {0};
+static const float readyJingleFreqs[READY_JINGLE_TONE_COUNT] = {
+    261.6f, 293.6f, 329.6f, 349.2f,
+    392.0f, 440.0f, 493.8f, 523.2f,
+    523.2f, 587.3f, 659.2f, 783.9f,
+    659.2f, 783.9f, 880.0f, 1046.5f
+};
+
 void ApplyAudioVolumes() {
     float bgm_vol = (float)g_config.vol_bgm / 10.0f;
     float sfx_vol = (float)g_config.vol_sfx / 10.0f;
@@ -50,23 +59,36 @@ Sound GenerateTone(float freq, float duration, int type) {
     return s;
 }
 
+void PlayReadyToneIndex(int index) {
+    if (g_config.vol_sfx == 0) return;
+    if (index < 0 || index >= READY_JINGLE_TONE_COUNT) return;
+    if (!readyJingleLoaded[index]) return;
+
+    SetSoundVolume(
+        readyJingleTones[index],
+        ((float)g_config.vol_sfx / 10.0f) * 0.7f
+    );
+    PlaySound(readyJingleTones[index]);
+}
+
 void PlayReadyTone(float freq) {
     if (g_config.vol_sfx == 0) return;
-    Sound s = GenerateTone(freq, 0.11f, 0);
-    SetSoundVolume(s, ((float)g_config.vol_sfx / 10.0f) * 0.7f);
-    PlaySound(s);
+    for (int i = 0; i < READY_JINGLE_TONE_COUNT; i++) {
+        if (fabsf(readyJingleFreqs[i] - freq) < 1.0f) {
+            PlayReadyToneIndex(i);
+            return;
+        }
+    }
 }
 
 void UpdateReadyJinglePC(int timer) {
     if (g_config.vol_sfx == 0) return;
     if (timer > 60) {
         int step = (120 - timer) / 7;
-        const float ready_freqs[8] = { 261.6f, 293.6f, 329.6f, 349.2f, 392.0f, 440.0f, 493.8f, 523.2f };
-        if ((120 - timer) % 7 == 0 && step < 8) PlayReadyTone(ready_freqs[step]);
+        if ((120 - timer) % 7 == 0 && step >= 0 && step < 8) PlayReadyToneIndex(step);
     } else {
         int step = (60 - timer) / 6;
-        const float go_freqs[8] = { 523.2f, 587.3f, 659.2f, 783.9f, 659.2f, 783.9f, 880.0f, 1046.5f };
-        if ((60 - timer) % 6 == 0 && step < 8) PlayReadyTone(go_freqs[step]);
+        if ((60 - timer) % 6 == 0 && step >= 0 && step < 8) PlayReadyToneIndex(8 + step);
     }
 }
 
@@ -261,7 +283,39 @@ void InitGameAudio() {
     TryLoadRawMusic(3, "dificultad.raw");
     TryLoadRawMusic(4, "gameover.raw");
 
+    for (int i = 0; i < READY_JINGLE_TONE_COUNT; i++) {
+        if (readyJingleLoaded[i] && IsSoundValid(readyJingleTones[i])) {
+            UnloadSound(readyJingleTones[i]);
+        }
+        readyJingleTones[i] = GenerateTone(readyJingleFreqs[i], 0.11f, 0);
+        readyJingleLoaded[i] = IsSoundValid(readyJingleTones[i]);
+    }
+
     ApplyAudioVolumes();
+}
+
+void UnloadGameAudio(void) {
+    if (IsSoundValid(sndShoot)) UnloadSound(sndShoot);
+    if (IsSoundValid(sndHit)) UnloadSound(sndHit);
+    if (IsSoundValid(sndHurt)) UnloadSound(sndHurt);
+    if (IsSoundValid(sndPowerUp)) UnloadSound(sndPowerUp);
+    if (IsSoundValid(sndNukePickup)) UnloadSound(sndNukePickup);
+    if (IsSoundValid(sndDash)) UnloadSound(sndDash);
+    if (IsSoundValid(sndDeath)) UnloadSound(sndDeath);
+    if (IsSoundValid(sndExplo)) UnloadSound(sndExplo);
+
+    for (int i = 0; i < 5; i++) {
+        if (bgmLoaded[i] && IsSoundValid(bgmTracks[i])) {
+            UnloadSound(bgmTracks[i]);
+            bgmLoaded[i] = 0;
+        }
+    }
+    for (int i = 0; i < READY_JINGLE_TONE_COUNT; i++) {
+        if (readyJingleLoaded[i] && IsSoundValid(readyJingleTones[i])) {
+            UnloadSound(readyJingleTones[i]);
+            readyJingleLoaded[i] = false;
+        }
+    }
 }
 
 void PlayGameBgm(int index) {

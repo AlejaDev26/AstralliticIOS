@@ -185,7 +185,8 @@ extern InputDeviceType g_toast_device;
 extern KeyBindings g_keys;
 extern PadBindings g_pad;
 extern GameConfig g_config;
-extern const int g_resolutions[4][2];
+#define RESOLUTION_COUNT 4
+extern const int g_resolutions[RESOLUTION_COUNT][2];
 extern const char* const g_lang_names[LANG_COUNT];
 
 const char* T(StringId id);

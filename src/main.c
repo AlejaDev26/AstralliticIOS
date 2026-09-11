@@ -10,6 +10,29 @@
 #include "mobile_input.h"
 #include "platform_paths.h"
 
+#if defined(PLATFORM_IOS)
+#include "ios_gamepad.h"
+#define IsGamepadAvailable(pad) IOSGamepad_IsAvailable(pad)
+#define GetGamepadAxisMovement(pad, axis) IOSGamepad_GetAxisMovement(pad, axis)
+#define IsGamepadButtonDown(pad, btn) IOSGamepad_IsButtonDown(pad, btn)
+#define IsGamepadButtonPressed(pad, btn) IOSGamepad_IsButtonPressed(pad, btn)
+#define IsGamepadButtonReleased(pad, btn) IOSGamepad_IsButtonReleased(pad, btn)
+#endif
+
+typedef enum {
+    KILL_CAUSE_BULLET,
+    KILL_CAUSE_POISON,
+    KILL_CAUSE_NUKE,
+    KILL_CAUSE_PLAYER_POWER,
+    KILL_CAUSE_KAMIKAZE_AOE
+} KillCause;
+
+typedef struct {
+    KillCause cause;
+    int weapon_type;
+    bool during_slowmo;
+} KillContext;
+
 InputDeviceType g_last_input_device = INPUT_KEYBOARD;
 int g_device_toast_timer = 0;
 InputDeviceType g_toast_device = INPUT_KEYBOARD;
@@ -175,7 +198,7 @@ GameConfig g_config = {
     .crt_filter = 0
 };
 
-const int g_resolutions[4][2] = {
+const int g_resolutions[RESOLUTION_COUNT][2] = {
     { 960, 640 },
     { 1200, 800 },
     { 1440, 960 },
@@ -570,13 +593,14 @@ void clearAllHighScoresPC() {
     }
 }
 
-void saveAchievementsPC() {
+void saveAchievementsPC(void) {
     FILE *f = fopen(PlatformGetDataPath("achievements.dat"), "wb");
-    if (f) {
-        fwrite(g_achievements_unlocked, sizeof(bool), NUM_ACHIEVEMENTS, f);
-        fwrite(g_achievement_progress, sizeof(int), NUM_ACHIEVEMENTS, f);
-        fclose(f);
-    }
+    if (!f) return;
+    size_t a = fwrite(g_achievements_unlocked, sizeof(bool), NUM_ACHIEVEMENTS, f);
+    size_t b = fwrite(g_achievement_progress, sizeof(int), NUM_ACHIEVEMENTS, f);
+    (void)a;
+    (void)b;
+    fclose(f);
 }
 
 void loadAchievementsPC() {
@@ -699,10 +723,10 @@ void saveConfigPC() {
     if (f) { fwrite(&g_config, sizeof(GameConfig), 1, f); fclose(f); }
 }
 
-void loadConfigPC() {
-    FILE *f = fopen(PlatformGetDataPath("config.dat"), "rb");
-    if (f) { fread(&g_config, sizeof(GameConfig), 1, f); fclose(f); }
+static void ValidateConfigPC(void) {
     if (g_config.target_fps < 0 || g_config.target_fps > 1) g_config.target_fps = 1;
+    if (g_config.vsync < 0 || g_config.vsync > 1) g_config.vsync = 1;
+    if (g_config.res_index < 0 || g_config.res_index >= RESOLUTION_COUNT) g_config.res_index = 0;
 #if defined(PLATFORM_IOS) || defined(PLATFORM_ANDROID)
     if (g_config.screen_mode < 0 || g_config.screen_mode > 2) g_config.screen_mode = 1;
 #else
@@ -712,6 +736,18 @@ void loadConfigPC() {
     if (g_config.vol_bgm < 0 || g_config.vol_bgm > 10) g_config.vol_bgm = 7;
     if (g_config.vol_sfx < 0 || g_config.vol_sfx > 10) g_config.vol_sfx = 8;
     if (g_config.crt_filter < 0 || g_config.crt_filter > 2) g_config.crt_filter = 0;
+}
+
+void loadConfigPC(void) {
+    GameConfig loaded = g_config;
+    FILE *f = fopen(PlatformGetDataPath("config.dat"), "rb");
+    if (f) {
+        if (fread(&loaded, sizeof(GameConfig), 1, f) == 1) {
+            g_config = loaded;
+        }
+        fclose(f);
+    }
+    ValidateConfigPC();
 }
 
 void ApplyVideoSettings() {
@@ -809,6 +845,7 @@ static int confirm_selection = 0;
 static int controls_selection = 0;
 static int rebinding_action = -1;
 static int duplicate_key_warning = 0;
+static float player_x = 110.0f, player_y = 75.0f;
 static int px = 110, py = 75, speed = 2, dir_x = 0, dir_y = -1;
 static int player_hp = 3, score = 0, invincibility = 0;
 static int shoot_cd = 0, combo = 1, combo_timer = 0, wave = 1;
@@ -846,7 +883,170 @@ static Texture2D logoTexture = {0};
         } \
     } while(0)
 
+static int GetEnemyBasePoints(int enemy_type) {
+    switch (enemy_type) {
+        case 3: return 500;
+        case 4: return 200;
+        case 7: return 150;
+        case 6: return 50;
+        default: return 100;
+    }
+}
 
+static void SpawnEnemyExplosion(int x, int y) {
+    for (int ex_slot = 0; ex_slot < MAX_EXPLO; ex_slot++) {
+        if (!explosions[ex_slot].active) {
+            explosions[ex_slot].active = 1;
+            explosions[ex_slot].x = x;
+            explosions[ex_slot].y = y;
+            explosions[ex_slot].timer = 30;
+            break;
+        }
+    }
+}
+
+static void SpawnDivisorFragments(int x, int y) {
+    int spawned_minis = 0;
+    for (int m_slot = 0; m_slot < MAX_ENEMIES && spawned_minis < 2; m_slot++) {
+        if (!enemies[m_slot].active) {
+            enemies[m_slot].active = 1;
+            enemies[m_slot].type = 6;
+            enemies[m_slot].hp = 1;
+            enemies[m_slot].freeze_timer = 0;
+            enemies[m_slot].poison_timer = 0;
+            enemies[m_slot].timer = 0;
+            enemies[m_slot].x = x + (spawned_minis == 0 ? -14 : 14);
+            enemies[m_slot].y = y;
+            spawned_minis++;
+        }
+    }
+}
+
+static void ApplyEnemyDamage(int idx, int damage, KillContext ctx);
+
+static void KillEnemy(int idx, KillContext ctx) {
+    if (idx < 0 || idx >= MAX_ENEMIES) return;
+    if (!enemies[idx].active) return;
+
+    int enemy_type = enemies[idx].type;
+    int enemy_x = enemies[idx].x;
+    int enemy_y = enemies[idx].y;
+    int enemy_timer = enemies[idx].timer;
+
+    enemies[idx].active = 0;
+
+    SpawnEnemyExplosion(enemy_x, enemy_y);
+    PlaySfx(sndExplo);
+
+    int base_pts = GetEnemyBasePoints(enemy_type);
+    int pts = base_pts * combo;
+    score += pts;
+
+    CheckScoreAchievements(score, player_hp, current_difficulty);
+
+    char pts_buf[20];
+    snprintf(pts_buf, sizeof(pts_buf), "+%d", pts);
+    SPAWN_FTEXT((float)enemy_x, (float)enemy_y - 8, pts_buf, C_YELLOW);
+
+    if (combo < 5 && p_type != 8 && p_type != 13) combo++;
+    combo_timer = 300;
+
+    if (current_difficulty >= 0 && current_difficulty < 4) {
+        g_enemies_killed_per_diff[current_difficulty]++;
+
+        int base_idx = current_difficulty; 
+        g_achievement_progress[base_idx]++;
+        if (!g_achievements_unlocked[base_idx] && g_achievement_progress[base_idx] >= 10) UnlockAchievement(base_idx);
+
+        int vet_idx = 4 + current_difficulty; 
+        g_achievement_progress[vet_idx]++;
+        if (!g_achievements_unlocked[vet_idx] && g_achievement_progress[vet_idx] >= 100) UnlockAchievement(vet_idx);
+
+        int mas_idx = 8 + current_difficulty; 
+        g_achievement_progress[mas_idx]++;
+        if (!g_achievements_unlocked[mas_idx] && g_achievement_progress[mas_idx] >= 500) UnlockAchievement(mas_idx);
+    }
+
+    if (ctx.cause == KILL_CAUSE_BULLET) {
+        if (ctx.weapon_type == 2) {
+            g_achievement_progress[ACH_DEMASIADO_RAPIDO]++;
+            if (g_achievement_progress[ACH_DEMASIADO_RAPIDO] >= 10)
+                UnlockAchievement(ACH_DEMASIADO_RAPIDO);
+        }
+        if (ctx.weapon_type == 10) {
+            g_achievement_progress[ACH_A_CONTRACORRIENTE]++;
+            if (g_achievement_progress[ACH_A_CONTRACORRIENTE] >= 10) {
+                UnlockAchievement(ACH_A_CONTRACORRIENTE);
+            }
+        }
+    }
+    if (ctx.during_slowmo) {
+        g_achievement_progress[ACH_TIEMPO_MUERTO]++;
+        if (g_achievement_progress[ACH_TIEMPO_MUERTO] >= 5) UnlockAchievement(ACH_TIEMPO_MUERTO);
+    }
+    if (ctx.cause == KILL_CAUSE_KAMIKAZE_AOE) {
+        UnlockAchievement(ACH_KABOOM);
+    }
+
+    if (enemy_type == 3) {
+        g_achievement_progress[ACH_CAZADOR_JEFES]++;
+        if (g_achievement_progress[ACH_CAZADOR_JEFES] >= 5) UnlockAchievement(ACH_CAZADOR_JEFES);
+        if (!g_boss_dash_used) UnlockAchievement(ACH_NI_UN_PASO_ATRAS);
+        if (current_difficulty == 3 && player_hp == 1) UnlockAchievement(ACH_A_UNA_VIDA);
+        screen_shake_timer = 25;
+    } else if (enemy_type == 9) {
+        g_achievement_progress[ACH_TELETRANSP]++;
+        if (g_achievement_progress[ACH_TELETRANSP] >= 10) UnlockAchievement(ACH_TELETRANSP);
+        if (enemy_timer < 60) UnlockAchievement(ACH_DONDE_ESTA);
+    } else if (enemy_type == 7) {
+        if (ctx.cause == KILL_CAUSE_BULLET && ctx.weapon_type == 0 && abs(px - enemy_x) <= 22 && abs(py - enemy_y) <= 22) {
+            UnlockAchievement(ACH_PISALO);
+        }
+        bool allow_kamikaze_death_aoe = (ctx.cause != KILL_CAUSE_NUKE && ctx.cause != KILL_CAUSE_KAMIKAZE_AOE);
+        if (allow_kamikaze_death_aoe) {
+            for (int other_idx = 0; other_idx < MAX_ENEMIES; other_idx++) {
+                if (other_idx != idx && enemies[other_idx].active) {
+                    int dx = enemies[other_idx].x - enemy_x;
+                    int dy = enemies[other_idx].y - enemy_y;
+                    if (dx * dx + dy * dy <= 28 * 28) {
+                        KillContext aoe_ctx = {
+                            .cause = KILL_CAUSE_KAMIKAZE_AOE,
+                            .weapon_type = -1,
+                            .during_slowmo = (slowmo_timer > 0)
+                        };
+                        ApplyEnemyDamage(other_idx, 2, aoe_ctx);
+                    }
+                }
+            }
+        }
+    } else if (enemy_type == 6) {
+        if (g_divisor_combo_active) {
+            g_divisor_fragments_left--;
+            if (g_divisor_fragments_left <= 0) {
+                UnlockAchievement(ACH_DIVIDE_Y_VENCERAS);
+                g_divisor_combo_active = false;
+            }
+        }
+    } else if (enemy_type == 5) {
+        bool suppress_spawn_on_death = (ctx.cause == KILL_CAUSE_NUKE);
+        if (!suppress_spawn_on_death) {
+            g_divisor_combo_active = true;
+            g_divisor_fragments_left = 2;
+            g_divisor_combo_timer = 300;
+            SpawnDivisorFragments(enemy_x, enemy_y);
+        }
+    }
+}
+
+static void ApplyEnemyDamage(int idx, int damage, KillContext ctx) {
+    if (idx < 0 || idx >= MAX_ENEMIES) return;
+    if (!enemies[idx].active) return;
+
+    enemies[idx].hp -= damage;
+    if (enemies[idx].hp <= 0) {
+        KillEnemy(idx, ctx);
+    }
+}
 
 static void GameInit(void)
 {
@@ -932,6 +1132,9 @@ static void GameInit(void)
 
 static void GameUpdate(void)
 {
+#if defined(PLATFORM_IOS)
+        IOSGamepad_Update();
+#endif
         float frame_dt = GetFrameTime();
         if (frame_dt > 0.25f) frame_dt = 0.25f;
         time_accumulator += frame_dt;
@@ -1175,7 +1378,7 @@ static void GameUpdate(void)
                 StopAllBgm();
                 current_difficulty = diff_selection;
                 player_hp = (current_difficulty == 0) ? 5 : ((current_difficulty == 3) ? 1 : 3);
-                score = 0; px = 110; py = 75; dir_x = 0; dir_y = -1; p_type = 0; p_up.active = 0;
+                score = 0; player_x = 110.0f; player_y = 75.0f; px = 110; py = 75; dir_x = 0; dir_y = -1; p_type = 0; p_up.active = 0;
                 slowmo_timer = 0; nuke_timer = 0; dash_cd = 0; dash_invincibility = 0; death_timer = 0; combo = 1; combo_timer = 0; wave = 1;
                 hell_no_damage_frames = 0; player_took_hit_this_wave = false;
                 g_waves_without_damage_streak = 0;
@@ -1353,8 +1556,8 @@ static void GameUpdate(void)
                 if (m_right || m_accept) { g_config.language = (g_config.language + 1) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.language = (g_config.language - 1 + LANG_COUNT) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 5) { 
-                if (m_right || (m_accept && g_config.res_index < 3)) { g_config.res_index = (g_config.res_index + 1) % 4; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
-                else if (m_left) { g_config.res_index = (g_config.res_index - 1 + 4) % 4; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+                if (m_right || (m_accept && g_config.res_index < RESOLUTION_COUNT - 1)) { g_config.res_index = (g_config.res_index + 1) % RESOLUTION_COUNT; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+                else if (m_left) { g_config.res_index = (g_config.res_index - 1 + RESOLUTION_COUNT) % RESOLUTION_COUNT; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 6) { 
                 if (m_right || (m_accept && g_config.screen_mode < 1)) { g_config.screen_mode = (g_config.screen_mode + 1) % 2; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 2) % 2; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
@@ -1522,8 +1725,8 @@ static void GameUpdate(void)
             } else if (pause_options_selection == 3) { 
                 if (m_accept) { state = 4; controls_origin_state = 12; controls_selection = 0; rebinding_action = -1; just_entered_menu = true; PlaySfx(sndHit); }
             } else if (pause_options_selection == 4) { 
-                if (m_right || (m_accept && g_config.res_index < 3)) { g_config.res_index = (g_config.res_index + 1) % 4; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
-                else if (m_left) { g_config.res_index = (g_config.res_index - 1 + 4) % 4; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+                if (m_right || (m_accept && g_config.res_index < RESOLUTION_COUNT - 1)) { g_config.res_index = (g_config.res_index + 1) % RESOLUTION_COUNT; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+                else if (m_left) { g_config.res_index = (g_config.res_index - 1 + RESOLUTION_COUNT) % RESOLUTION_COUNT; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
             } else if (pause_options_selection == 5) { 
                 if (m_right || (m_accept && g_config.screen_mode < 1)) { g_config.screen_mode = (g_config.screen_mode + 1) % 2; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 2) % 2; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
@@ -1798,7 +2001,7 @@ static void GameUpdate(void)
                 StopAllBgm();
                 if (gameover_selection == 0) {
                     player_hp = (current_difficulty == 0) ? 5 : ((current_difficulty == 3) ? 1 : 3);
-                    score = 0; px = 110; py = 75; dir_x = 0; dir_y = -1; p_type = 0; p_up.active = 0;
+                    score = 0; player_x = 110.0f; player_y = 75.0f; px = 110; py = 75; dir_x = 0; dir_y = -1; p_type = 0; p_up.active = 0;
                     slowmo_timer = 0; nuke_timer = 0; dash_cd = 0; dash_invincibility = 0; death_timer = 0; combo = 1; combo_timer = 0; wave = 1;
                     hell_no_damage_frames = 0; player_took_hit_this_wave = false;
                     g_waves_without_damage_streak = 0;
@@ -1815,6 +2018,7 @@ static void GameUpdate(void)
                     for(int ex_idx=0; ex_idx<MAX_EXPLO; ex_idx++) explosions[ex_idx].active = 0;
                     ready_timer = 120; pause_resume_cooldown = 15; pause_toggle_cooldown = 15; state = 9; 
                 } else {
+                    saveAchievementsPC();
                     state = 0; PlayGameBgm(0); just_entered_menu = true;
                 }
             }
@@ -1855,7 +2059,7 @@ static void GameUpdate(void)
                     StopAllBgm();
                     just_entered_menu = true;
                 }
-                else if (pause_selection == 2) { state = 0; PlayGameBgm(0); just_entered_menu = true; }
+                else if (pause_selection == 2) { saveAchievementsPC(); state = 0; PlayGameBgm(0); just_entered_menu = true; }
             }
             if (m_back) {
                 state = 1;
@@ -1901,7 +2105,7 @@ static void GameUpdate(void)
             }
             else if (state == 8) {
                 death_timer--;
-                if (death_timer <= 0) { saveHighScorePC(current_difficulty, score); gameover_selection = 0; state = 2; PlayGameBgm(4); }
+                if (death_timer <= 0) { saveHighScorePC(current_difficulty, score); saveAchievementsPC(); gameover_selection = 0; state = 2; PlayGameBgm(4); }
             }
             else if (state == 2) {
                 for(int b = 0; b < MAX_BLOOD_DROPS; b++) {
@@ -1924,21 +2128,13 @@ static void GameUpdate(void)
                     int nuke_kills_count = 0;
                     for(int k = 0; k < MAX_ENEMIES; k++) {
                         if (enemies[k].active) {
-                            enemies[k].active = 0;
+                            KillContext ctx_nuke = {
+                                .cause = KILL_CAUSE_NUKE,
+                                .weapon_type = -1,
+                                .during_slowmo = (slowmo_timer > 0)
+                            };
+                            KillEnemy(k, ctx_nuke);
                             nuke_kills_count++;
-                            for(int ex = 0; ex < MAX_EXPLO; ex++) {
-                                if (!explosions[ex].active) {
-                                    explosions[ex].active = 1;
-                                    explosions[ex].x = enemies[k].x;
-                                    explosions[ex].y = enemies[k].y;
-                                    explosions[ex].timer = 30;
-                                    break;
-                                }
-                            }
-                            int nuke_points = (enemies[k].type == 3) ? 500 : (enemies[k].type == 4 ? 200 : (enemies[k].type == 7 ? 150 : (enemies[k].type == 6 ? 50 : 100)));
-                            score += nuke_points * combo;
-                            CheckScoreAchievements(score, player_hp, current_difficulty);
-                            if (combo < 5 && p_type != 8 && p_type != 13) combo++;
                         }
                     }
                     if (nuke_kills_count >= 5) UnlockAchievement(ACH_BOOM);
@@ -2005,7 +2201,7 @@ static void GameUpdate(void)
 
                 if (k_dash && dash_cd == 0 && mx_dir != 0) {
                     PlaySfx(sndDash);
-                    px += mx_dir * 28;
+                    player_x += mx_dir * 28.0f;
                     dash_cd = 60;
                     invincibility = 15;
                     dash_invincibility = 15;
@@ -2024,12 +2220,24 @@ static void GameUpdate(void)
                     my_dir = 0;
                 } else {
                     if (mx_dir != 0 || my_dir != 0) { dir_x = mx_dir; dir_y = my_dir; }
-                    px += mx_dir * speed;
-                    py += my_dir * speed;
+                    float move_x = (float)mx_dir;
+                    float move_y = (float)my_dir;
+                    if (move_x != 0.0f && move_y != 0.0f) {
+                        const float inv_sqrt2 = 0.70710678f;
+                        move_x *= inv_sqrt2;
+                        move_y *= inv_sqrt2;
+                    }
+                    player_x += move_x * (float)speed;
+                    player_y += move_y * (float)speed;
                 }
 
-                if (px < 0) px = 0; if (px > 230) px = 230;
-                if (py < 16) py = 16; if (py > 150) py = 150;
+                if (player_x < 0.0f) player_x = 0.0f;
+                if (player_x > 230.0f) player_x = 230.0f;
+                if (player_y < 16.0f) player_y = 16.0f;
+                if (player_y > 150.0f) player_y = 150.0f;
+
+                px = (int)roundf(player_x);
+                py = (int)roundf(player_y);
 
                 if (shoot_cd > 0) shoot_cd--;
                 bool is_shooting = IsKeyDown(g_keys.key_shoot) || (current_frame_key == g_keys.key_shoot) || (pad_active && (IsGamepadButtonDown(pad_id, g_pad.btn_shoot) || IsGamepadButtonPressed(pad_id, g_pad.btn_shoot))) || mobile.fire_down;
@@ -2137,8 +2345,6 @@ static void GameUpdate(void)
                                         if (g_achievement_progress[12] >= 25) UnlockAchievement(ACH_CALIENTE);
                                     }
 
-                                    enemies[en_idx].hp -= dmg;
-                                    
                                     if (p_type == 9) {
                                         if (enemies[en_idx].freeze_timer <= 0) {
                                             SPAWN_FTEXT((float)enemies[en_idx].x, (float)enemies[en_idx].y - 6, T(STR_FREEZE), C_ICE);
@@ -2157,124 +2363,12 @@ static void GameUpdate(void)
 
                                     PlaySfx(sndHit);
 
-                                    if (enemies[en_idx].hp <= 0) {
-                                        if (p_type == 2) {
-                                            g_achievement_progress[ACH_DEMASIADO_RAPIDO]++;
-                                            if (g_achievement_progress[ACH_DEMASIADO_RAPIDO] >= 10)
-                                                UnlockAchievement(ACH_DEMASIADO_RAPIDO);
-                                        }
-                                        if (p_type == 10) {
-                                            g_achievement_progress[ACH_A_CONTRACORRIENTE]++;
-                                            if (g_achievement_progress[ACH_A_CONTRACORRIENTE] >= 10) {
-                                                UnlockAchievement(ACH_A_CONTRACORRIENTE);
-                                            }
-                                        }
-                                        // TIEMPO MUERTO (Slow-Mo kills) -> Índice 17 correcto
-                                        if (slowmo_timer > 0) {
-                                            g_achievement_progress[ACH_TIEMPO_MUERTO]++;
-                                            if (g_achievement_progress[17] >= 5) UnlockAchievement(ACH_TIEMPO_MUERTO);
-                                        }
-
-                                        if (current_difficulty >= 0 && current_difficulty < 4) {
-                                            g_enemies_killed_per_diff[current_difficulty]++;
-                                            
-                                            int base_idx = current_difficulty; 
-                                            g_achievement_progress[base_idx]++;
-                                            if (!g_achievements_unlocked[base_idx] && g_achievement_progress[base_idx] >= 10) UnlockAchievement(base_idx);
-
-                                            int vet_idx = 4 + current_difficulty; 
-                                            g_achievement_progress[vet_idx]++;
-                                            if (!g_achievements_unlocked[vet_idx] && g_achievement_progress[vet_idx] >= 100) UnlockAchievement(vet_idx);
-
-                                            int mas_idx = 8 + current_difficulty; 
-                                            g_achievement_progress[mas_idx]++;
-                                            if (!g_achievements_unlocked[mas_idx] && g_achievement_progress[mas_idx] >= 500) UnlockAchievement(mas_idx);
-                                        }
-
-                                        if (enemies[en_idx].type == 3) {
-                                            g_achievement_progress[ACH_CAZADOR_JEFES]++;
-                                            if (g_achievement_progress[ACH_CAZADOR_JEFES] >= 5) UnlockAchievement(ACH_CAZADOR_JEFES);
-                                            if (!g_boss_dash_used) UnlockAchievement(ACH_NI_UN_PASO_ATRAS);
-                                            if (current_difficulty == 3 && player_hp == 1) UnlockAchievement(ACH_A_UNA_VIDA);
-                                        }
-                                        if (enemies[en_idx].type == 9) {
-                                            g_achievement_progress[ACH_TELETRANSP]++;
-                                            if (g_achievement_progress[ACH_TELETRANSP] >= 10) UnlockAchievement(ACH_TELETRANSP);
-                                            if (enemies[en_idx].timer < 60) UnlockAchievement(ACH_DONDE_ESTA);
-                                        }
-                                        if (enemies[en_idx].type == 7) {
-                                            if (p_type == 0 && abs(px - enemies[en_idx].x) <= 22 && abs(py - enemies[en_idx].y) <= 22) {
-                                                UnlockAchievement(ACH_PISALO);
-                                            }
-                                            for (int other_idx = 0; other_idx < MAX_ENEMIES; other_idx++) {
-                                                if (other_idx != en_idx && enemies[other_idx].active) {
-                                                    int dx = enemies[other_idx].x - enemies[en_idx].x;
-                                                    int dy = enemies[other_idx].y - enemies[en_idx].y;
-                                                    if (dx * dx + dy * dy <= 28 * 28) {
-                                                        enemies[other_idx].hp -= 2;
-                                                        if (enemies[other_idx].hp <= 0) {
-                                                            enemies[other_idx].active = 0;
-                                                            UnlockAchievement(ACH_KABOOM);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        if (enemies[en_idx].type == 6 && g_divisor_combo_active) {
-                                            g_divisor_fragments_left--;
-                                            if (g_divisor_fragments_left <= 0) {
-                                                UnlockAchievement(ACH_DIVIDE_Y_VENCERAS);
-                                                g_divisor_combo_active = false;
-                                            }
-                                        }
-
-                                        enemies[en_idx].active = 0;
-
-                                        for(int ex_slot = 0; ex_slot < MAX_EXPLO; ex_slot++) {
-                                            if(!explosions[ex_slot].active) {
-                                                explosions[ex_slot].active = 1;
-                                                explosions[ex_slot].x = enemies[en_idx].x;
-                                                explosions[ex_slot].y = enemies[en_idx].y;
-                                                explosions[ex_slot].timer = 30;
-                                                break;
-                                            }
-                                        }
-                                        int base_pts = (enemies[en_idx].type == 3) ? 500 : (enemies[en_idx].type == 4 ? 200 : (enemies[en_idx].type == 7 ? 150 : (enemies[en_idx].type == 6 ? 50 : 100)));
-                                        int pts = base_pts * combo;
-                                        score += pts;
-
-                                        CheckScoreAchievements(score, player_hp, current_difficulty);
-
-                                        if (enemies[en_idx].type == 3) screen_shake_timer = 25;
-
-                                        char pts_buf[20];
-                                        snprintf(pts_buf, sizeof(pts_buf), "+%d", pts);
-                                        SPAWN_FTEXT((float)enemies[en_idx].x, (float)enemies[en_idx].y - 8, pts_buf, C_YELLOW);
-
-                                        if (combo < 5 && p_type != 8 && p_type != 13) combo++;
-                                        combo_timer = 300;
-                                        PlaySfx(sndExplo);
-
-                                        if (enemies[en_idx].type == 5) {
-                                            g_divisor_combo_active = true;
-                                            g_divisor_fragments_left = 2;
-                                            g_divisor_combo_timer = 300;
-                                            int spawned_minis = 0;
-                                            for(int m_slot = 0; m_slot < MAX_ENEMIES && spawned_minis < 2; m_slot++) {
-                                                if (!enemies[m_slot].active) {
-                                                    enemies[m_slot].active = 1;
-                                                    enemies[m_slot].type = 6;
-                                                    enemies[m_slot].hp = 1;
-                                                    enemies[m_slot].freeze_timer = 0;
-                                                    enemies[m_slot].poison_timer = 0;
-                                                    enemies[m_slot].timer = 0;
-                                                    enemies[m_slot].x = enemies[en_idx].x + (spawned_minis == 0 ? -14 : 14);
-                                                    enemies[m_slot].y = enemies[en_idx].y;
-                                                    spawned_minis++;
-                                                }
-                                            }
-                                        }
-                                    }
+                                    KillContext b_ctx = {
+                                        .cause = KILL_CAUSE_BULLET,
+                                        .weapon_type = p_type,
+                                        .during_slowmo = (slowmo_timer > 0)
+                                    };
+                                    ApplyEnemyDamage(en_idx, dmg, b_ctx);
                                     break;
                                 }
                             }
@@ -2445,47 +2539,15 @@ static void GameUpdate(void)
                         if (enemies[en_idx].poison_timer > 0) {
                             enemies[en_idx].poison_timer--;
                             if (frame_count % 30 == 0) {
-                                enemies[en_idx].hp--;
+                                KillContext ctx_poison = {
+                                    .cause = KILL_CAUSE_POISON,
+                                    .weapon_type = -1,
+                                    .during_slowmo = (slowmo_timer > 0)
+                                };
+                                ApplyEnemyDamage(en_idx, 1, ctx_poison);
                                 PlaySfx(sndHit);
+                                if (!enemies[en_idx].active) continue;
                             }
-                        }
-
-                        if (enemies[en_idx].hp <= 0) {
-                            enemies[en_idx].active = 0;
-
-                            for(int ex_slot = 0; ex_slot < MAX_EXPLO; ex_slot++) {
-                                if(!explosions[ex_slot].active) {
-                                    explosions[ex_slot].active = 1;
-                                    explosions[ex_slot].x = enemies[en_idx].x;
-                                    explosions[ex_slot].y = enemies[en_idx].y;
-                                    explosions[ex_slot].timer = 30;
-                                    break;
-                                }
-                            }
-                            int base_pts = (enemies[en_idx].type == 3) ? 500 : (enemies[en_idx].type == 4 ? 200 : (enemies[en_idx].type == 7 ? 150 : (enemies[en_idx].type == 6 ? 50 : 100)));
-                            score += base_pts * combo;
-                            CheckScoreAchievements(score, player_hp, current_difficulty);
-                            if (combo < 5 && p_type != 8 && p_type != 13) combo++;
-                            combo_timer = 300;
-                            PlaySfx(sndExplo);
-
-                            if (enemies[en_idx].type == 5) {
-                                int spawned_minis = 0;
-                                for(int m_slot = 0; m_slot < MAX_ENEMIES && spawned_minis < 2; m_slot++) {
-                                    if (!enemies[m_slot].active) {
-                                        enemies[m_slot].active = 1;
-                                        enemies[m_slot].type = 6;
-                                        enemies[m_slot].hp = 1;
-                                        enemies[m_slot].freeze_timer = 0;
-                                        enemies[m_slot].poison_timer = 0;
-                                        enemies[m_slot].timer = 0;
-                                        enemies[m_slot].x = enemies[en_idx].x + (spawned_minis == 0 ? -14 : 14);
-                                        enemies[m_slot].y = enemies[en_idx].y;
-                                        spawned_minis++;
-                                    }
-                                }
-                            }
-                            continue;
                         }
 
                         if (enemies[en_idx].freeze_timer > 0) {
@@ -2582,29 +2644,12 @@ static void GameUpdate(void)
 
                         if ((invincibility == 0 || p_type == 6) && px < enemies[en_idx].x + 10 && px + 10 > enemies[en_idx].x && py < enemies[en_idx].y + 10 && py + 10 > enemies[en_idx].y) {
                             if (p_type == 6) {
-                                enemies[en_idx].active = 0;
-                                for(int ex_slot = 0; ex_slot < MAX_EXPLO; ex_slot++) {
-                                    if(!explosions[ex_slot].active) {
-                                        explosions[ex_slot].active = 1;
-                                        explosions[ex_slot].x = enemies[en_idx].x;
-                                        explosions[ex_slot].y = enemies[en_idx].y;
-                                        explosions[ex_slot].timer = 30;
-                                        break;
-                                    }
-                                }
-                                int base_pts = (enemies[en_idx].type == 3) ? 500 : (enemies[en_idx].type == 4 ? 200 : (enemies[en_idx].type == 7 ? 150 : (enemies[en_idx].type == 6 ? 50 : 100)));
-                                int pts = base_pts * combo;
-                                score += pts;
-
-                                CheckScoreAchievements(score, player_hp, current_difficulty);
-
-                                char pts_buf[20];
-                                snprintf(pts_buf, sizeof(pts_buf), "+%d", pts);
-                                SPAWN_FTEXT((float)enemies[en_idx].x, (float)enemies[en_idx].y - 8, pts_buf, C_YELLOW);
-
-                                if (combo < 5 && p_type != 8 && p_type != 13) combo++;
-                                combo_timer = 300;
-                                PlaySfx(sndExplo);
+                                KillContext ctx_power = {
+                                    .cause = KILL_CAUSE_PLAYER_POWER,
+                                    .weapon_type = -1,
+                                    .during_slowmo = (slowmo_timer > 0)
+                                };
+                                KillEnemy(en_idx, ctx_power);
                             } else {
                                 player_took_hit_this_wave = true;
                                 hell_no_damage_frames = 0;
@@ -3546,19 +3591,10 @@ static void GameUpdate(void)
 
 static void GameShutdown(void)
 {
+    saveAchievementsPC();
     MobileInput_Shutdown();
     UnloadShader(crtShader);
-    UnloadSound(sndShoot);
-    UnloadSound(sndHit);
-    UnloadSound(sndHurt);
-    UnloadSound(sndPowerUp);
-    UnloadSound(sndNukePickup);
-    UnloadSound(sndDash);
-    UnloadSound(sndDeath);
-    UnloadSound(sndExplo);
-    for (int trk_idx = 0; trk_idx < 5; trk_idx++) {
-        if (bgmLoaded[trk_idx]) UnloadSound(bgmTracks[trk_idx]);
-    }
+    UnloadGameAudio();
     CloseAudioDevice();
 
     if (logoTexture.id > 0) UnloadTexture(logoTexture);

@@ -95,6 +95,7 @@ set(GAME_SOURCES
     src/mobile_input.c
     src/platform_paths.c
     src/ios_paths.m
+    src/ios_gamepad.m
 )
 
 # Assets del juego
@@ -135,6 +136,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     "-framework AVFoundation"
     "-framework AudioToolbox"
     "-framework OpenGLES"
+    "-framework GameController"
 )
 
 # Propiedades del bundle iOS
