@@ -480,7 +480,7 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_HINT] = "TOCA UN LOGRO PARA VER DETALLES",
         [STR_ACH_STATUS_UNLOCKED] = "ESTADO: DESBLOQUEADO (OK)",
         [STR_ACH_PROGRESS_LBL] = "PROGRESO",
-        [STR_CTRL_MOVE] = "MOVER NAVE",
+        [STR_CTRL_MOVE] = "MOVER",
         [STR_TOUCH_INFO_TITLE] = "CONTROLES TACTILES"
     },
     [1] = { // ENGLISH
@@ -620,7 +620,7 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_HINT] = "TAP AN ACHIEVEMENT FOR DETAILS",
         [STR_ACH_STATUS_UNLOCKED] = "STATUS: UNLOCKED (OK)",
         [STR_ACH_PROGRESS_LBL] = "PROGRESS",
-        [STR_CTRL_MOVE] = "MOVE SHIP",
+        [STR_CTRL_MOVE] = "MOVE",
         [STR_TOUCH_INFO_TITLE] = "TOUCH CONTROLS"
     },
     [2] = { // FRANÇAIS
@@ -741,7 +741,7 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_HINT] = "TOUCHEZ UN SUCCES POUR DETAILS",
         [STR_ACH_STATUS_UNLOCKED] = "STATUT: DEVERROUILLE (OK)",
         [STR_ACH_PROGRESS_LBL] = "PROGRES",
-        [STR_CTRL_MOVE] = "BOUGER VAISSEAU",
+        [STR_CTRL_MOVE] = "DEPLACER",
         [STR_TOUCH_INFO_TITLE] = "COMMANDES TACTILES"
     },
     [3] = { // ITALIANO
@@ -863,7 +863,7 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_HINT] = "TOCCA UN SUCCESSO PER DETTAGLI",
         [STR_ACH_STATUS_UNLOCKED] = "STATO: SBLOCCATO (OK)",
         [STR_ACH_PROGRESS_LBL] = "PROGRESSO",
-        [STR_CTRL_MOVE] = "MUOVI NAVE",
+        [STR_CTRL_MOVE] = "MUOVI",
         [STR_TOUCH_INFO_TITLE] = "COMANDI TOUCH"
     },
     [4] = { // DEUTSCH
@@ -985,7 +985,7 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_ACH_HINT] = "ERFOLG TIPPEN FUER DETAILS",
         [STR_ACH_STATUS_UNLOCKED] = "STATUS: FREIGESCHALTET (OK)",
         [STR_ACH_PROGRESS_LBL] = "FORTSCHRITT",
-        [STR_CTRL_MOVE] = "SCHIFF BEWEGEN",
+        [STR_CTRL_MOVE] = "BEWEGEN",
         [STR_TOUCH_INFO_TITLE] = "TOUCH-STEUERUNG"
     }
 };
@@ -1414,6 +1414,21 @@ static const char* GetFpsOptionText(int fps_idx) {
         return (max_hz >= 120) ? "120 FPS" : "120 FPS (60Hz)";
     }
     return "60 FPS";
+}
+
+static bool IsTablet43(void) {
+    float sw = (float)GetScreenWidth();
+    float sh = (float)GetScreenHeight();
+    if (sh <= 0.001f) return false;
+    float aspect = sw / sh;
+    if (aspect < 1.0f) aspect = 1.0f / aspect;
+    return (aspect < 1.55f);
+}
+
+static const char* GetScreenModeOptionText(int mode) {
+    if (IsTablet43()) return "3:2 RETRO";
+    if (mode < 0 || mode >= 3) mode = 0;
+    return g_screen_mode_names[mode];
 }
 
 void ApplyFpsSetting(void) {
@@ -2323,19 +2338,28 @@ static void GameUpdate(void) {
         float draw_w = (float)SCREEN_W * scale_val;
         float draw_h = (float)SCREEN_H * scale_val;
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
-        if (g_config.screen_mode == 0) {
-            // Modo 0 (Por defecto): COMPLETA - llena el 100% de la pantalla del iPhone moderno
-            draw_w = screen_render_w;
-            draw_h = screen_render_h;
-        } else if (g_config.screen_mode == 1) {
-            // Modo 1: 16:9 WIDE panorámico arcade
-            draw_h = screen_render_h;
-            draw_w = draw_h * (16.0f / 9.0f);
-            if (draw_w > screen_render_w) draw_w = screen_render_w;
-        } else if (g_config.screen_mode == 2) {
-            // Modo 2: 3:2 RETRO clásico (GBA)
+        if (IsTablet43()) {
+            // En iPads con pantalla 4:3, la escala nativa más cómoda y óptima es 3:2 RETRO
             draw_w = (float)SCREEN_W * scale_val;
             draw_h = (float)SCREEN_H * scale_val;
+        } else {
+            if (g_config.screen_mode == 0) {
+                // Modo 0 (Por defecto): COMPLETA - llena el 100% de la pantalla del iPhone moderno
+                draw_w = screen_render_w;
+                draw_h = screen_render_h;
+            } else if (g_config.screen_mode == 1) {
+                // Modo 1: 16:9 WIDE panorámico arcade
+                draw_h = screen_render_h;
+                draw_w = draw_h * (16.0f / 9.0f);
+                if (draw_w > screen_render_w) {
+                    draw_w = screen_render_w;
+                    draw_h = draw_w * (9.0f / 16.0f);
+                }
+            } else if (g_config.screen_mode == 2) {
+                // Modo 2: 3:2 RETRO clásico (GBA)
+                draw_w = (float)SCREEN_W * scale_val;
+                draw_h = (float)SCREEN_H * scale_val;
+            }
         }
 #endif
         float offset_x = roundf((screen_render_w - draw_w) * 0.5f);
@@ -2937,7 +2961,7 @@ static void GameUpdate(void) {
             snprintf(opt_strings[2], sizeof(opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), GetScreenModeOptionText(g_config.screen_mode));
             snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
             snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
 
@@ -2986,8 +3010,12 @@ static void GameUpdate(void) {
                 if (m_right || m_accept) { g_config.language = (g_config.language + 1) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.language = (g_config.language - 1 + LANG_COUNT) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 5) { 
-                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
-                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                if (IsTablet43()) {
+                    g_config.screen_mode = 2; saveConfigPC(); PlaySfx(sndHit);
+                } else {
+                    if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                    else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                }
             } else if (options_selection == 6) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.target_fps = (g_config.target_fps - 1 + FPS_OPTION_COUNT) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
@@ -3063,7 +3091,7 @@ static void GameUpdate(void) {
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), GetScreenModeOptionText(g_config.screen_mode));
             snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
 
             int p_row_w = 175;
@@ -3108,8 +3136,12 @@ static void GameUpdate(void) {
             } else if (pause_options_selection == 3) { 
                 if (m_accept) { state = 4; controls_origin_state = 12; controls_selection = 0; rebinding_action = -1; just_entered_menu = true; PlaySfx(sndHit); }
             } else if (pause_options_selection == 4) { 
-                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
-                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                if (IsTablet43()) {
+                    g_config.screen_mode = 2; saveConfigPC(); PlaySfx(sndHit);
+                } else {
+                    if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                    else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                }
             } else if (pause_options_selection == 5) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.target_fps = (g_config.target_fps - 1 + FPS_OPTION_COUNT) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
@@ -5544,7 +5576,7 @@ static void GameUpdate(void) {
             snprintf(opt_strings[2], sizeof(opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), GetScreenModeOptionText(g_config.screen_mode));
             snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
             snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
 
@@ -5626,7 +5658,7 @@ static void GameUpdate(void) {
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), GetScreenModeOptionText(g_config.screen_mode));
             snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
 
             int p_icons[6] = {
@@ -5738,71 +5770,72 @@ static void GameUpdate(void) {
                 }
 
                 // Chasis exterior del teléfono móvil en horizontal
-                DrawRectangle(22, 38, 196, 98, GBA_COLOR(2, 4, 8));
-                DrawRectangleLines(22, 38, 196, 98, GBA_COLOR(0, 26, 31));
-                // Pantalla interior
-                DrawRectangle(34, 42, 172, 90, GBA_COLOR(1, 2, 5));
-                DrawRectangleLines(34, 42, 172, 90, GBA_COLOR(0, 16, 22));
+                DrawRectangle(20, 38, 200, 98, GBA_COLOR(2, 4, 8));
+                DrawRectangleLines(20, 38, 200, 98, GBA_COLOR(0, 26, 31));
+                // Pantalla interior (x: 32 a 208, y: 42 a 132)
+                DrawRectangle(32, 42, 176, 90, GBA_COLOR(1, 2, 5));
+                DrawRectangleLines(32, 42, 176, 90, GBA_COLOR(0, 16, 22));
 
                 // Cámara frontal (izq) y altavoz (der)
-                DrawCircle(28, 87, 2, GBA_COLOR(8, 12, 16));
-                DrawRectangle(212, 81, 2, 12, GBA_COLOR(8, 12, 16));
+                DrawCircle(26, 87, 2, GBA_COLOR(8, 12, 16));
+                DrawRectangle(214, 81, 2, 12, GBA_COLOR(8, 12, 16));
 
                 // --- LADO IZQUIERDO: JOYSTICK VIRTUAL FLOTANTE (ESTILO RETRO 16-BIT) ---
-                DrawRectangle(44, 62, 38, 38, GBA_COLOR(1, 4, 10));
-                DrawRectangleLines(44, 62, 38, 38, GBA_COLOR(0, 24, 31));
+                DrawRectangle(42, 62, 38, 38, GBA_COLOR(1, 4, 10));
+                DrawRectangleLines(42, 62, 38, 38, GBA_COLOR(0, 24, 31));
                 // Flechas cardinales
-                DrawRectangle(61, 64, 4, 3, WHITE);
-                DrawRectangle(61, 95, 4, 3, WHITE);
-                DrawRectangle(46, 79, 3, 4, WHITE);
-                DrawRectangle(77, 79, 3, 4, WHITE);
+                DrawRectangle(59, 64, 4, 3, WHITE);
+                DrawRectangle(59, 95, 4, 3, WHITE);
+                DrawRectangle(44, 79, 3, 4, WHITE);
+                DrawRectangle(75, 79, 3, 4, WHITE);
                 // Pomo central
-                DrawRectangle(55, 73, 16, 16, C_CYAN);
-                DrawRectangleLines(55, 73, 16, 16, WHITE);
-                DrawRectangle(60, 78, 6, 6, WHITE);
+                DrawRectangle(53, 73, 16, 16, C_CYAN);
+                DrawRectangleLines(53, 73, 16, 16, WHITE);
+                DrawRectangle(58, 78, 6, 6, WHITE);
                 int move_w = MeasureStringCustom(T(STR_CTRL_MOVE), 1);
-                DrawStringCustom(T(STR_CTRL_MOVE), 63 - (move_w / 2), 108, C_CYAN, 1);
+                DrawStringCustom(T(STR_CTRL_MOVE), 61 - (move_w / 2), 108, C_CYAN, 1);
 
-                // --- LADO DERECHO: BOTONES TÁCTILES RETRO (NUEVA DISTRIBUCIÓN) ---
-                // Botón Pausa [II] (esquina superior derecha de la pantalla interior)
-                DrawRectangle(188, 46, 12, 10, GBA_COLOR(4, 8, 12));
-                DrawRectangleLines(188, 46, 12, 10, C_CYAN);
-                DrawRectangle(189, 47, 10, 1, (Color){ 255, 255, 255, 100 });
-                DrawStringCustom("II", 192, 48, WHITE, 1);
+                // --- BOTÓN PAUSA [II] (esquina superior derecha con amplio margen) ---
+                DrawRectangle(176, 46, 12, 10, GBA_COLOR(4, 8, 12));
+                DrawRectangleLines(176, 46, 12, 10, C_CYAN);
+                DrawRectangle(177, 47, 10, 1, (Color){ 255, 255, 255, 100 });
+                DrawStringCustom("II", 179, 48, WHITE, 1);
                 int p_w = MeasureStringCustom(T(STR_PAUSE), 1);
-                DrawStringCustom(T(STR_PAUSE), 184 - p_w, 48, GBA_COLOR(18, 22, 26), 1);
+                DrawStringCustom(T(STR_PAUSE), 171 - p_w, 48, GBA_COLOR(18, 22, 26), 1);
 
+                // --- COLUMNA CENTRAL: DASH [D] Y TURBO [T] ---
                 // Botón Dash [D] (Verde esmeralda, posición superior izquierda)
-                DrawRectangle(138, 66, 14, 14, GBA_COLOR(2, 18, 8));
-                DrawRectangleLines(138, 66, 14, 14, C_GREEN);
-                DrawRectangle(139, 67, 12, 1, (Color){ 255, 255, 255, 120 });
-                DrawStringCustom("D", 143, 70, C_GREEN, 1);
+                DrawRectangle(120, 66, 14, 14, GBA_COLOR(2, 18, 8));
+                DrawRectangleLines(120, 66, 14, 14, C_GREEN);
+                DrawRectangle(121, 67, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("D", 125, 70, C_GREEN, 1);
                 int d_w = MeasureStringCustom(T(STR_CTRL_DASH), 1);
-                DrawStringCustom(T(STR_CTRL_DASH), 134 - d_w, 70, C_GREEN, 1);
+                DrawStringCustom(T(STR_CTRL_DASH), 115 - d_w, 70, C_GREEN, 1);
 
                 // Botón Turbo [T] (Azul / Cian, posición inferior izquierda)
-                DrawRectangle(138, 96, 14, 14, GBA_COLOR(2, 10, 26));
-                DrawRectangleLines(138, 96, 14, 14, C_CYAN);
-                DrawRectangle(139, 97, 12, 1, (Color){ 255, 255, 255, 120 });
-                DrawStringCustom("T", 143, 100, C_CYAN, 1);
+                DrawRectangle(120, 96, 14, 14, GBA_COLOR(2, 10, 26));
+                DrawRectangleLines(120, 96, 14, 14, C_CYAN);
+                DrawRectangle(121, 97, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("T", 125, 100, C_CYAN, 1);
                 int t_w = MeasureStringCustom(T(STR_CTRL_TURBO), 1);
-                DrawStringCustom(T(STR_CTRL_TURBO), 134 - t_w, 100, C_CYAN, 1);
+                DrawStringCustom(T(STR_CTRL_TURBO), 115 - t_w, 100, C_CYAN, 1);
 
+                // --- COLUMNA DERECHA: AIM LOCK [L] Y DISPARO [A] (PERFECTAMENTE CENTRADOS) ---
                 // Botón Aim Lock [L] (Dorado / Amarillo, posición superior derecha)
-                DrawRectangle(186, 66, 14, 14, GBA_COLOR(24, 18, 2));
-                DrawRectangleLines(186, 66, 14, 14, C_YELLOW);
-                DrawRectangle(187, 67, 12, 1, (Color){ 255, 255, 255, 120 });
-                DrawStringCustom("L", 191, 70, C_YELLOW, 1);
+                DrawRectangle(162, 66, 14, 14, GBA_COLOR(24, 18, 2));
+                DrawRectangleLines(162, 66, 14, 14, C_YELLOW);
+                DrawRectangle(163, 67, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("L", 167, 70, C_YELLOW, 1);
                 int l_w = MeasureStringCustom(T(STR_CTRL_AIM), 1);
-                DrawStringCustom(T(STR_CTRL_AIM), 193 - (l_w / 2), 82, C_YELLOW, 1);
+                DrawStringCustom(T(STR_CTRL_AIM), 169 - (l_w / 2), 82, C_YELLOW, 1);
 
-                // Botón Disparo [A] (Rojo carmesí, botón principal a la derecha)
-                DrawRectangle(185, 95, 16, 16, GBA_COLOR(26, 4, 4));
-                DrawRectangleLines(185, 95, 16, 16, GBA_COLOR(31, 14, 14));
-                DrawRectangle(186, 96, 14, 1, (Color){ 255, 255, 255, 140 });
-                DrawStringCustom("A", 190, 100, WHITE, 1);
+                // Botón Disparo [A] (Rojo carmesí, botón principal)
+                DrawRectangle(161, 95, 16, 16, GBA_COLOR(26, 4, 4));
+                DrawRectangleLines(161, 95, 16, 16, GBA_COLOR(31, 14, 14));
+                DrawRectangle(162, 96, 14, 1, (Color){ 255, 255, 255, 140 });
+                DrawStringCustom("A", 166, 100, WHITE, 1);
                 int a_w = MeasureStringCustom(T(STR_CTRL_SHOOT), 1);
-                DrawStringCustom(T(STR_CTRL_SHOOT), 193 - (a_w / 2), 113, GBA_COLOR(31, 14, 14), 1);
+                DrawStringCustom(T(STR_CTRL_SHOOT), 169 - (a_w / 2), 113, GBA_COLOR(31, 14, 14), 1);
             } else {
                 DrawMenuSpaceFramePC(C_CTRL_BG, T(STR_CTRL_TITLE), GBA_COLOR(0, 31, 10), GBA_COLOR(0, 10, 4), GBA_COLOR(0, 26, 10));
                 DrawNebulaBackgroundPC(SCREEN_W, SCREEN_H, frame_count);
