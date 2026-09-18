@@ -2114,8 +2114,8 @@ void DrawTitleFooterPC(int frame_count) {
     DrawRectangle(left_x + 36, py + 3, 1, 1, C_CYAN);
     DrawSleekStringPC("ALEJADEV", left_x + 40, py + 1, GBA_COLOR(24, 30, 31));
 
-    // Right Badge: * V1.0 // PC
-    int right_w = 56;
+    // Right Badge: * V1.0 // iOS
+    int right_w = 58;
     int right_x = SCREEN_W - right_w - 7;
     DrawBevelledBoxPC(right_x, py - 2, right_w, 11, GBA_COLOR(1, 3, 6), GBA_COLOR(3, 8, 14), true);
     DrawRectangle(right_x + 1, py - 1, 1, 1, C_CYAN);
@@ -2128,8 +2128,14 @@ void DrawTitleFooterPC(int frame_count) {
     if (led_pulse == 0) DrawRectangle(right_x + 4, py + 3, 1, 1, WHITE);
 
     DrawSleekStringPC("V1.0", right_x + 9, py + 1, GBA_COLOR(22, 26, 30));
-    DrawSleekStringPC("//", right_x + 29, py + 1, GBA_COLOR(8, 14, 20));
+    DrawSleekStringPC("//", right_x + 28, py + 1, GBA_COLOR(8, 14, 20));
+#if defined(PLATFORM_IOS)
+    DrawSleekStringPC("IOS", right_x + 37, py + 1, C_YELLOW);
+#elif defined(PLATFORM_ANDROID)
+    DrawSleekStringPC("AND", right_x + 37, py + 1, C_YELLOW);
+#else
     DrawSleekStringPC("PC", right_x + 39, py + 1, C_YELLOW);
+#endif
 }
 
 void DrawTitleDividerPC(int center_x, int y, int width, int frame_count) {

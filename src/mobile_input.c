@@ -137,6 +137,9 @@ void MobileInput_Update(bool gameplay_mode)
                 if (TouchIsFresh(id)) {
                     g_stick_active = true;
                     g_stick_touch_id = id;
+                    // Clamp stick origin so it never spawns under the iPhone notch
+                    float min_stick_x = 115.0f * s;
+                    if (p.x < min_stick_x) p.x = min_stick_x;
                     g_stick_origin = p;
                     g_stick_knob = p;
                     break;
@@ -190,7 +193,7 @@ void MobileInput_Draw(bool gameplay_mode)
     float knob_radius = BASE_STICK_KNOB * s;
     float button_radius = BASE_BUTTON_RADIUS * s;
 
-    Vector2 stick_center = g_stick_active ? g_stick_origin : (Vector2){ 82.0f * s, height - 85.0f * s };
+    Vector2 stick_center = g_stick_active ? g_stick_origin : (Vector2){ 120.0f * s, height - 85.0f * s };
     Vector2 stick_knob   = g_stick_active ? g_stick_knob : stick_center;
     Vector2 fire_center  = { width - 70.0f * s, height - 95.0f * s };
     Vector2 dash_center  = { width - 145.0f * s, height - 65.0f * s };

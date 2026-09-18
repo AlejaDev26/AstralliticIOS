@@ -2138,6 +2138,9 @@ static void GameInit(void) {
     }
 
     MobileInput_Init();
+#if defined(PLATFORM_IOS)
+    IOSGamepad_Init();
+#endif
     memset(e_bullets, 0, sizeof(e_bullets));
 
     InitTitleStars();
@@ -2148,6 +2151,9 @@ static void GameInit(void) {
 }
 
 static void GameUpdate(void) {
+#if defined(PLATFORM_IOS)
+    IOSGamepad_Update();
+#endif
 
         float frame_dt = GetFrameTime();
         if (frame_dt > 0.25f) frame_dt = 0.25f;
@@ -2259,7 +2265,7 @@ static void GameUpdate(void) {
         if (pad_active) {
             if (fabsf(pad_stick_x) > 0.3f || fabsf(pad_stick_y) > 0.3f) any_pad_event = true;
             for (int b = 1; b <= 17; b++) {
-                if (IsGamepadButtonPressed(pad_id, b)) { any_pad_event = true; break; }
+                if (IsGamepadButtonPressed(pad_id, b) || IsGamepadButtonDown(pad_id, b)) { any_pad_event = true; break; }
             }
         }
 
@@ -2873,8 +2879,8 @@ static void GameUpdate(void) {
             if (opt_top < 15) opt_top = 15;
             int opt_start_y = opt_top + 37;
 
-            // Botones triangulares en el lateral derecho (x: 204..239)
-            if (mouse_clicked && mouse_x >= 204 && mouse_x <= 239) {
+            // Botones triangulares en el lateral derecho (x: 200..234)
+            if (mouse_clicked && mouse_x >= 200 && mouse_x <= 234) {
                 if (mouse_y >= 44 && mouse_y <= 84) {
                     // Triangulo Arriba: sube de opcion si no esta arriba del todo
                     if (options_selection > 0) {
@@ -3004,8 +3010,8 @@ static void GameUpdate(void) {
             if (opt_top < 15) opt_top = 15;
             int opt_start_y = opt_top + 40;
 
-            // Botones triangulares en el lateral derecho (x: 204..239)
-            if (mouse_clicked && mouse_x >= 204 && mouse_x <= 239) {
+            // Botones triangulares en el lateral derecho (x: 200..234)
+            if (mouse_clicked && mouse_x >= 200 && mouse_x <= 234) {
                 if (mouse_y >= 44 && mouse_y <= 84) {
                     if (pause_options_selection > 0) {
                         pause_options_selection--;
@@ -3245,8 +3251,8 @@ static void GameUpdate(void) {
                     }
                 }
 
-                // Botones triangulares en lateral derecho (x: 204..239)
-                if (mouse_clicked && mouse_x >= 204 && mouse_x <= 239) {
+                // Botones triangulares en lateral derecho (x: 198..234)
+                if (mouse_clicked && mouse_x >= 198 && mouse_x <= 234) {
                     int total_pages = (NUM_ACHIEVEMENTS + 7) / 8;
                     int cur_p = selected_ach_index / 8;
                     if (mouse_y >= 44 && mouse_y <= 84) {
@@ -3268,11 +3274,11 @@ static void GameUpdate(void) {
                     }
                 }
 
-                if (show_ach_details && mouse_clicked && (mouse_x < 204)) {
+                if (show_ach_details && mouse_clicked && (mouse_x < 198)) {
                     show_ach_details = false;
                     PlaySfx(sndHit);
-                } else if (!show_ach_details && mouse_clicked && (mouse_x < 204)) {
-                    int grid_start_x = (SCREEN_W - 192) / 2;
+                } else if (!show_ach_details && mouse_clicked && (mouse_x < 198)) {
+                    int grid_start_x = 16;
                     for (int ach_i = 0; ach_i < NUM_ACHIEVEMENTS; ach_i++) {
                         int page_base = (selected_ach_index / 8) * 8;
                         int i_local = ach_i - page_base;
@@ -3280,7 +3286,7 @@ static void GameUpdate(void) {
 
                         int row = i_local / 4;
                         int col = i_local % 4;
-                        int bx = grid_start_x + (col * 52);
+                        int bx = grid_start_x + (col * 45);
                         int by = rec_top + 22 + (row * 35);
                         if (mouse_x >= bx && mouse_x <= bx + 36 && mouse_y >= by && mouse_y <= by + 32) {
                             selected_ach_index = ach_i;
@@ -5405,7 +5411,7 @@ static void GameUpdate(void) {
                 }
             } else {
                 int start_index = (selected_ach_index / 8) * 8;
-                int grid_start_x = (SCREEN_W - 192) / 2;
+                int grid_start_x = 16;
 
                 for (int i = 0; i < 8; i++) {
                     int ach_idx = start_index + i;
@@ -5413,7 +5419,7 @@ static void GameUpdate(void) {
 
                     int row = i / 4;
                     int col = i % 4;
-                    int bx = grid_start_x + (col * 52);
+                    int bx = grid_start_x + (col * 45);
                     int by = rec_top + 22 + (row * 35);
                     int bw = 36;
                     int bh = 32;
@@ -5441,29 +5447,30 @@ static void GameUpdate(void) {
                     }
                 }
 
-                // Triangulos de navegacion de Logros en lateral derecho (x: 204..239)
+                // Triangulos de navegacion de Logros en lateral derecho
                 int total_pages = (NUM_ACHIEVEMENTS + 7) / 8;
                 int cur_page = selected_ach_index / 8;
 
                 bool can_ach_up = (cur_page > 0);
                 Color ach_up_col = can_ach_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
                 Color ach_up_border = can_ach_up ? WHITE : GBA_COLOR(10, 14, 18);
-                Vector2 a1_up = { 224, 52 };
-                Vector2 a2_up = { 213, 72 };
-                Vector2 a3_up = { 235, 72 };
+                Vector2 a1_up = { 214, 52 };
+                Vector2 a2_up = { 204, 72 };
+                Vector2 a3_up = { 224, 72 };
                 DrawTriangle(a1_up, a2_up, a3_up, ach_up_col);
                 DrawTriangleLines(a1_up, a2_up, a3_up, ach_up_border);
 
                 char page_buf[16];
                 snprintf(page_buf, sizeof(page_buf), "%d/%d", cur_page + 1, total_pages);
-                DrawStringCustom(page_buf, 214, 87, C_CYAN, 1);
+                int page_w = MeasureStringCustom(page_buf, 1);
+                DrawStringCustom(page_buf, 214 - (page_w / 2), 87, C_CYAN, 1);
 
                 bool can_ach_dn = (cur_page < total_pages - 1);
                 Color ach_dn_col = can_ach_dn ? C_YELLOW : GBA_COLOR(6, 8, 12);
                 Color ach_dn_border = can_ach_dn ? WHITE : GBA_COLOR(10, 14, 18);
-                Vector2 a1_dn = { 213, 106 };
-                Vector2 a2_dn = { 235, 106 };
-                Vector2 a3_dn = { 224, 126 };
+                Vector2 a1_dn = { 204, 106 };
+                Vector2 a2_dn = { 224, 106 };
+                Vector2 a3_dn = { 214, 126 };
                 DrawTriangle(a1_dn, a2_dn, a3_dn, ach_dn_col);
                 DrawTriangleLines(a1_dn, a2_dn, a3_dn, ach_dn_border);
 
@@ -5594,18 +5601,18 @@ static void GameUpdate(void) {
             bool can_scroll_up = (options_selection > 0);
             Color up_col = can_scroll_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color up_border = can_scroll_up ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_up = { 224, 52 };
-            Vector2 p2_up = { 213, 72 };
-            Vector2 p3_up = { 235, 72 };
+            Vector2 p1_up = { 216, 52 };
+            Vector2 p2_up = { 206, 72 };
+            Vector2 p3_up = { 226, 72 };
             DrawTriangle(p1_up, p2_up, p3_up, up_col);
             DrawTriangleLines(p1_up, p2_up, p3_up, up_border);
 
             bool can_scroll_down = (options_selection < total_opts - 1);
             Color down_col = can_scroll_down ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color down_border = can_scroll_down ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_dn = { 213, 106 };
-            Vector2 p2_dn = { 235, 106 };
-            Vector2 p3_dn = { 224, 126 };
+            Vector2 p1_dn = { 206, 106 };
+            Vector2 p2_dn = { 226, 106 };
+            Vector2 p3_dn = { 216, 126 };
             DrawTriangle(p1_dn, p2_dn, p3_dn, down_col);
             DrawTriangleLines(p1_dn, p2_dn, p3_dn, down_border);
         }
@@ -5677,18 +5684,18 @@ static void GameUpdate(void) {
             bool can_p_scroll_up = (pause_options_selection > 0);
             Color p_up_col = can_p_scroll_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color p_up_border = can_p_scroll_up ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_pup = { 224, 52 };
-            Vector2 p2_pup = { 213, 72 };
-            Vector2 p3_pup = { 235, 72 };
+            Vector2 p1_pup = { 216, 52 };
+            Vector2 p2_pup = { 206, 72 };
+            Vector2 p3_pup = { 226, 72 };
             DrawTriangle(p1_pup, p2_pup, p3_pup, p_up_col);
             DrawTriangleLines(p1_pup, p2_pup, p3_pup, p_up_border);
 
             bool can_p_scroll_down = (pause_options_selection < total_pause_opts - 1);
             Color p_down_col = can_p_scroll_down ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color p_down_border = can_p_scroll_down ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_pdn = { 213, 106 };
-            Vector2 p2_pdn = { 235, 106 };
-            Vector2 p3_pdn = { 224, 126 };
+            Vector2 p1_pdn = { 206, 106 };
+            Vector2 p2_pdn = { 226, 106 };
+            Vector2 p3_pdn = { 216, 126 };
             DrawTriangle(p1_pdn, p2_pdn, p3_pdn, p_down_col);
             DrawTriangleLines(p1_pdn, p2_pdn, p3_pdn, p_down_border);
 
