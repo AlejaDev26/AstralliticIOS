@@ -337,7 +337,7 @@ const char* const g_res_names[RESOLUTION_COUNT] = {
 };
 
 
-const char* const g_screen_mode_names[3] = { "COMPLETA", "16:9", "3:2 RETRO" };
+const char* const g_screen_mode_names[3] = { "COMPLETA", "16:9 WIDE", "3:2 RETRO" };
 const char* const g_lang_names[LANG_COUNT] = { "ES", "EN", "FR", "IT", "DE" };
 
 const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
@@ -472,7 +472,14 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_CHEAT_INVALID] = "ESTE CODIGO NO ES VALIDO",
         [STR_CHEAT_ALREADY_USED] = "ESTE CODIGO YA HA SIDO CANJEADO",
         [STR_CHEAT_SUCCESS] = "!CODIGO ACTIVADO!",
-        [STR_MENU_SECRETS] = "SECRETOS"
+        [STR_MENU_SECRETS] = "SECRETOS",
+        [STR_TOUCH_CONNECTED] = "TACTIL CONECTADO",
+        [STR_TOUCH_BACK] = "< TOCA AQUI PARA VOLVER >",
+        [STR_ACH_HINT] = "TOCA UN LOGRO PARA VER DETALLES",
+        [STR_ACH_STATUS_UNLOCKED] = "ESTADO: DESBLOQUEADO (OK)",
+        [STR_ACH_PROGRESS_LBL] = "PROGRESO",
+        [STR_CTRL_MOVE] = "MOVER NAVE",
+        [STR_TOUCH_INFO_TITLE] = "CONTROLES TACTILES"
     },
     [1] = { // ENGLISH
         [STR_PLAY] = "PLAY", [STR_OPTIONS] = "OPTIONS", [STR_RECORDS] = "HIGHSCORES", [STR_VOL_BGM] = "BGM VOLUME",
@@ -605,7 +612,14 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_CHEAT_INVALID] = "INVALID CODE",
         [STR_CHEAT_ALREADY_USED] = "CODE ALREADY REDEEMED",
         [STR_CHEAT_SUCCESS] = "CODE ACTIVATED!",
-        [STR_MENU_SECRETS] = "SECRETS"
+        [STR_MENU_SECRETS] = "SECRETS",
+        [STR_TOUCH_CONNECTED] = "TOUCH CONNECTED",
+        [STR_TOUCH_BACK] = "< TAP HERE TO GO BACK >",
+        [STR_ACH_HINT] = "TAP AN ACHIEVEMENT FOR DETAILS",
+        [STR_ACH_STATUS_UNLOCKED] = "STATUS: UNLOCKED (OK)",
+        [STR_ACH_PROGRESS_LBL] = "PROGRESS",
+        [STR_CTRL_MOVE] = "MOVE SHIP",
+        [STR_TOUCH_INFO_TITLE] = "TOUCH CONTROLS"
     },
     [2] = { // FRANÇAIS
         [STR_PLAY] = "JOUER", [STR_OPTIONS] = "OPTIONS", [STR_RECORDS] = "RECORDS", [STR_VOL_BGM] = "VOL. MUSIQUE",
@@ -719,7 +733,14 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_CHEAT_INVALID] = "CODE INVALIDE",
         [STR_CHEAT_ALREADY_USED] = "CODE DEJA UTILISE",
         [STR_CHEAT_SUCCESS] = "CODE ACTIVE!",
-        [STR_MENU_SECRETS] = "SECRETS"
+        [STR_MENU_SECRETS] = "SECRETS",
+        [STR_TOUCH_CONNECTED] = "TACTILE CONNECTE",
+        [STR_TOUCH_BACK] = "< TOUCHEZ POUR RETOUR >",
+        [STR_ACH_HINT] = "TOUCHEZ UN SUCCES POUR DETAILS",
+        [STR_ACH_STATUS_UNLOCKED] = "STATUT: DEVERROUILLE (OK)",
+        [STR_ACH_PROGRESS_LBL] = "PROGRES",
+        [STR_CTRL_MOVE] = "BOUGER VAISSEAU",
+        [STR_TOUCH_INFO_TITLE] = "COMMANDES TACTILES"
     },
     [3] = { // ITALIANO
         [STR_PLAY] = "GIOCA", [STR_OPTIONS] = "OPZIONI", [STR_RECORDS] = "RECORD", [STR_VOL_BGM] = "VOL. MUSICA",
@@ -834,7 +855,14 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_CHEAT_INVALID] = "CODICE NON VALIDO",
         [STR_CHEAT_ALREADY_USED] = "CODICE GIA UTILIZZATO",
         [STR_CHEAT_SUCCESS] = "CODICE ATTIVATO!",
-        [STR_MENU_SECRETS] = "SEGRETI"
+        [STR_MENU_SECRETS] = "SEGRETI",
+        [STR_TOUCH_CONNECTED] = "TOUCH CONNESSO",
+        [STR_TOUCH_BACK] = "< TOCCA PER TORNARE >",
+        [STR_ACH_HINT] = "TOCCA UN SUCCESSO PER DETTAGLI",
+        [STR_ACH_STATUS_UNLOCKED] = "STATO: SBLOCCATO (OK)",
+        [STR_ACH_PROGRESS_LBL] = "PROGRESSO",
+        [STR_CTRL_MOVE] = "MUOVI NAVE",
+        [STR_TOUCH_INFO_TITLE] = "COMANDI TOUCH"
     },
     [4] = { // DEUTSCH
         [STR_PLAY] = "SPIELEN", [STR_OPTIONS] = "OPTIONEN", [STR_RECORDS] = "REKORDE", [STR_VOL_BGM] = "MUSIK LAUTST.",
@@ -844,23 +872,23 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_CANCEL] = "NEIN, ABBRUCH", [STR_CONFIRM_DELETE_BTN] = "JA, LOSCHEN", [STR_DIFF_TITLE] = "SCHWIERIGKEIT",
         [STR_DIFF_EASY] = "LEICHT", [STR_DIFF_NORMAL] = "NORMAL", [STR_DIFF_HARD] = "SCHWER", [STR_DIFF_HELL] = "HOLLE",
         [STR_PAUSE] = "PAUSE", [STR_RESUME] = "WEITER", [STR_MAIN_MENU] = "HAUPTMENU", [STR_GAME_OVER] = "GAME OVER",
-        [STR_POINTS] = "PUNKTE", [STR_RETRY] = "NEUSTART", [STR_QUIT_PROMPT] = "SPIEL BEENDEN?",
-        [STR_QUIT_SUB] = "MOCHTEST DU BEENDEN?", [STR_YES] = "JA", [STR_NO] = "NEIN", [STR_CTRL_TITLE] = "STEUERUNG",
+        [STR_POINTS] = "PUNKTE", [STR_RETRY] = "NOCHMAL", [STR_QUIT_PROMPT] = "BEENDEN?",
+        [STR_QUIT_SUB] = "JETZT BEENDEN?", [STR_YES] = "JA", [STR_NO] = "NEIN", [STR_CTRL_TITLE] = "STEUERUNG",
         [STR_CTRL_UP] = "HOCH", [STR_CTRL_DOWN] = "RUNTER", [STR_CTRL_LEFT] = "LINKS", [STR_CTRL_RIGHT] = "RECHTS",
         [STR_CTRL_SHOOT] = "SCHUSS", [STR_CTRL_TURBO] = "TURBO", [STR_CTRL_AIM] = "ZIELEN",
-        [STR_CTRL_DASH] = "DASH", [STR_REBIND_TITLE] = "TASTE ANDERN", [STR_PRESS_KEY] = "TASTE/KNOPF DRUCKEN...",
-        [STR_CANCEL_KEY] = "BKSP / ESC ABBRUCH", [STR_INVALID_ACTION] = "UNGULTIG", [STR_DUPLICATE_KEY] = "EINGABE BEREITS BELEGT",
+        [STR_CTRL_DASH] = "SPURT", [STR_REBIND_TITLE] = "TASTE BELEGEN", [STR_PRESS_KEY] = "TASTE DRUCKEN...",
+        [STR_CANCEL_KEY] = "BKSP / ESC ABBRUCH", [STR_INVALID_ACTION] = "UNGULTIGE AKTION", [STR_DUPLICATE_KEY] = "BEREITS BELEGT",
         [STR_USE_OTHER_KEY] = "WAHLE ANDERE EINGABE", [STR_PRESS_BACK] = "DRUCKE %s ZUM ZURUCK", [STR_PRESENTS] = "PRASENTIERT...",
         [STR_READY] = "BEREIT!", [STR_GO] = "LOS!", [STR_WAVE] = "WELLE",
-        [STR_GAMEPAD_CONNECTED] = "CONTROLLER ERKANNT", [STR_KEYBOARD_CONNECTED] = "TASTATUR ERKANNT",
-        [STR_FREEZE] = "FROST!", [STR_POISON] = "GIFT!",
+        [STR_GAMEPAD_CONNECTED] = "GAMEPAD VERBUNDEN", [STR_KEYBOARD_CONNECTED] = "TASTATUR VERBUNDEN",
+        [STR_FREEZE] = "EINGEFROREN!", [STR_POISON] = "VERGIFTET!",
         [STR_LOGROS] = "ERFOLGE",
-        [STR_ACH_1_TITLE] = "REKRUT LEICHT", [STR_ACH_1_DESC] = "BESIEGE 10 FEINDE AUF LEICHT",
-        [STR_ACH_2_TITLE] = "REKRUT NORMAL", [STR_ACH_2_DESC] = "BESIEGE 10 FEINDE AUF NORMAL",
-        [STR_ACH_3_TITLE] = "REKRUT SCHWER", [STR_ACH_3_DESC] = "BESIEGE 10 FEINDE AUF SCHWER",
-        [STR_ACH_4_TITLE] = "REKRUT HOLLE", [STR_ACH_4_DESC] = "BESIEGE 10 FEINDE AUF HOLLE",
-        [STR_ACH_5_TITLE] = "VETERAN LEICHT", [STR_ACH_5_DESC] = "BESIEGE 100 FEINDE AUF LEICHT",
-        [STR_ACH_6_TITLE] = "VETERAN NORMAL", [STR_ACH_6_DESC] = "BESIEGE 100 FEINDE AUF NORMAL",
+        [STR_ACH_1_TITLE] = "ANFANGER LEICHT", [STR_ACH_1_DESC] = "10 GEGNER AUF LEICHT BESIEGEN",
+        [STR_ACH_2_TITLE] = "ANFANGER NORMAL", [STR_ACH_2_DESC] = "10 GEGNER AUF NORMAL BESIEGEN",
+        [STR_ACH_3_TITLE] = "ANFANGER SCHWER", [STR_ACH_3_DESC] = "10 GEGNER AUF SCHWER BESIEGEN",
+        [STR_ACH_4_TITLE] = "ANFANGER HOLLE", [STR_ACH_4_DESC] = "10 GEGNER AUF HOLLE BESIEGEN",
+        [STR_ACH_5_TITLE] = "VETERAN LEICHT", [STR_ACH_5_DESC] = "100 GEGNER AUF LEICHT BESIEGEN",
+        [STR_ACH_6_TITLE] = "VETERAN NORMAL", [STR_ACH_6_DESC] = "100 GEGNER AUF NORMAL BESIEGEN",
         [STR_ACH_7_TITLE] = "VETERAN SCHWER", [STR_ACH_7_DESC] = "BESIEGE 100 FEINDE AUF SCHWER",
         [STR_ACH_8_TITLE] = "VETERAN HOLLE", [STR_ACH_8_DESC] = "BESIEGE 100 FEINDE AUF HOLLE",
         [STR_ACH_9_TITLE] = "MEISTER LEICHT", [STR_ACH_9_DESC] = "BESIEGE 500 FEINDE AUF LEICHT",
@@ -949,7 +977,14 @@ const char* const g_lang_strings[LANG_COUNT][STR_COUNT] = {
         [STR_CHEAT_INVALID] = "UNGULTIGER CODE",
         [STR_CHEAT_ALREADY_USED] = "CODE BEREITS EINGELOST",
         [STR_CHEAT_SUCCESS] = "CODE AKTIVIERT!",
-        [STR_MENU_SECRETS] = "GEHEIMNISSE"
+        [STR_MENU_SECRETS] = "GEHEIMNISSE",
+        [STR_TOUCH_CONNECTED] = "TOUCH VERBUNDEN",
+        [STR_TOUCH_BACK] = "< HIER TIPPEN ZURUECK >",
+        [STR_ACH_HINT] = "ERFOLG TIPPEN FUER DETAILS",
+        [STR_ACH_STATUS_UNLOCKED] = "STATUS: FREIGESCHALTET (OK)",
+        [STR_ACH_PROGRESS_LBL] = "FORTSCHRITT",
+        [STR_CTRL_MOVE] = "SCHIFF BEWEGEN",
+        [STR_TOUCH_INFO_TITLE] = "TOUCH-STEUERUNG"
     }
 };
 
@@ -2262,6 +2297,22 @@ static void GameUpdate(void) {
 
         float draw_w = (float)SCREEN_W * scale_val;
         float draw_h = (float)SCREEN_H * scale_val;
+#if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
+        if (g_config.screen_mode == 0) {
+            // Modo 0 (Por defecto): COMPLETA - llena el 100% de la pantalla del iPhone moderno
+            draw_w = screen_render_w;
+            draw_h = screen_render_h;
+        } else if (g_config.screen_mode == 1) {
+            // Modo 1: 16:9 WIDE panorámico arcade
+            draw_h = screen_render_h;
+            draw_w = draw_h * (16.0f / 9.0f);
+            if (draw_w > screen_render_w) draw_w = screen_render_w;
+        } else if (g_config.screen_mode == 2) {
+            // Modo 2: 3:2 RETRO clásico (GBA)
+            draw_w = (float)SCREEN_W * scale_val;
+            draw_h = (float)SCREEN_H * scale_val;
+        }
+#endif
         float offset_x = roundf((screen_render_w - draw_w) * 0.5f);
         float offset_y = roundf((screen_render_h - draw_h) * 0.5f);
         float render_w = draw_w;
@@ -2805,12 +2856,15 @@ static void GameUpdate(void) {
         else if (state == 7) {
             PlayGameBgm(1);
 
+            const int total_opts = 8;
+            const int max_scroll = 5;
+
             if (mouse_wheel != 0) {
                 int scroll_delta = (int)roundf(mouse_wheel);
                 if (scroll_delta == 0) scroll_delta = (mouse_wheel > 0.0f) ? 1 : -1;
                 options_scroll_offset -= scroll_delta;
                 if (options_scroll_offset < 0) options_scroll_offset = 0;
-                if (options_scroll_offset > 4) options_scroll_offset = 4;
+                if (options_scroll_offset > max_scroll) options_scroll_offset = max_scroll;
                 if (options_selection < options_scroll_offset) options_selection = options_scroll_offset;
                 if (options_selection >= options_scroll_offset + 3) options_selection = options_scroll_offset + 2;
             }
@@ -2819,56 +2873,59 @@ static void GameUpdate(void) {
             if (opt_top < 15) opt_top = 15;
             int opt_start_y = opt_top + 37;
 
-            int opt_sb_x = SCREEN_W - 28;
-            if (mouse_down && mouse_x >= opt_sb_x - 6 && mouse_x <= opt_sb_x + 14 && mouse_y >= opt_start_y - 4 && mouse_y <= opt_start_y + 84) is_dragging_scrollbar = true;
-            if (!mouse_down) is_dragging_scrollbar = false;
-
-            if (is_dragging_scrollbar) {
-                float rel_y = (float)(mouse_y - opt_start_y) / 56.0f;
-                if (rel_y < 0.0f) rel_y = 0.0f;
-                if (rel_y > 1.0f) rel_y = 1.0f;
-                options_scroll_offset = (int)roundf(rel_y * 4.0f);
-                if (options_scroll_offset < 0) options_scroll_offset = 0;
-                if (options_scroll_offset > 4) options_scroll_offset = 4;
-                if (options_selection < options_scroll_offset) options_selection = options_scroll_offset;
-                if (options_selection >= options_scroll_offset + 3) options_selection = options_scroll_offset + 2;
+            // Botones triangulares en el lateral derecho (x: 204..239)
+            if (mouse_clicked && mouse_x >= 204 && mouse_x <= 239) {
+                if (mouse_y >= 44 && mouse_y <= 84) {
+                    // Triangulo Arriba: sube de opcion si no esta arriba del todo
+                    if (options_selection > 0) {
+                        options_selection--;
+                        PlaySfx(sndHit);
+                    }
+                } else if (mouse_y >= 94 && mouse_y <= 136) {
+                    // Triangulo Abajo: baja de opcion si no esta abajo del todo
+                    if (options_selection < total_opts - 1) {
+                        options_selection++;
+                        PlaySfx(sndHit);
+                    }
+                }
             }
 
             if (m_up) {
-                options_selection--;
-                if (options_selection < 0) options_selection = 6;
-                if (options_selection < options_scroll_offset) options_scroll_offset = options_selection;
-                if (options_selection >= options_scroll_offset + 3) options_scroll_offset = options_selection - 2;
-                PlaySfx(sndHit);
+                if (options_selection > 0) {
+                    options_selection--;
+                    PlaySfx(sndHit);
+                }
             }
             if (m_down) {
-                options_selection++;
-                if (options_selection > 6) options_selection = 0;
-                if (options_selection < options_scroll_offset) options_scroll_offset = options_selection;
-                if (options_selection >= options_scroll_offset + 3) options_scroll_offset = options_selection - 2;
-                PlaySfx(sndHit);
+                if (options_selection < total_opts - 1) {
+                    options_selection++;
+                    PlaySfx(sndHit);
+                }
             }
+
+            if (options_selection < options_scroll_offset) options_scroll_offset = options_selection;
+            if (options_selection >= options_scroll_offset + 3) options_scroll_offset = options_selection - 2;
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char opt_strings[7][64];
+            char opt_strings[8][64];
             snprintf(opt_strings[0], sizeof(opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], sizeof(opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(opt_strings[2], sizeof(opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
-            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s", T(STR_DELETE_RECORDS));
+            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
 
-            int row_w = 180;
-            int row_x = (SCREEN_W - row_w) / 2;
+            int row_w = 175;
+            int row_x = 25;
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = options_scroll_offset + slot;
+                if (opt_idx >= total_opts) break;
                 int row_y = opt_start_y + (slot * 30);
-                if (mouse_x >= row_x && mouse_x <= row_x + row_w && mouse_y >= row_y - 2 && mouse_y <= row_y + 22) {
-                    if (mouse_moved) options_selection = opt_idx;
-                    if (mouse_clicked) {
-                        options_selection = opt_idx;
+                if (mouse_clicked && mouse_x >= row_x && mouse_x <= row_x + row_w && mouse_y >= row_y - 2 && mouse_y <= row_y + 22) {
+                    if (options_selection == opt_idx) {
                         const char* str = opt_strings[opt_idx];
                         const char* left_arrow = strchr(str, '<');
                         const char* right_arrow = strrchr(str, '>');
@@ -2884,6 +2941,9 @@ static void GameUpdate(void) {
                         } else {
                             m_accept = true;
                         }
+                    } else {
+                        options_selection = opt_idx;
+                        PlaySfx(sndHit);
                     }
                 }
             }
@@ -2903,9 +2963,12 @@ static void GameUpdate(void) {
                 if (m_right || m_accept) { g_config.language = (g_config.language + 1) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.language = (g_config.language - 1 + LANG_COUNT) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 5) { 
+                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+            } else if (options_selection == 6) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.target_fps = (g_config.target_fps - 1 + FPS_OPTION_COUNT) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
-            } else if (options_selection == 6) { 
+            } else if (options_selection == 7) { 
                 if (m_accept) { state = 10; confirm_selection = 0; just_entered_menu = true; PlaySfx(sndHit); }
             }
 
@@ -2924,12 +2987,15 @@ static void GameUpdate(void) {
                 mouse_wheel = 0;
             }
 
+            const int total_pause_opts = 6;
+            const int max_pause_scroll = 3;
+
             if (mouse_wheel != 0) {
                 int scroll_delta = (int)roundf(mouse_wheel);
                 if (scroll_delta == 0) scroll_delta = (mouse_wheel > 0.0f) ? 1 : -1;
                 pause_options_scroll_offset -= scroll_delta;
                 if (pause_options_scroll_offset < 0) pause_options_scroll_offset = 0;
-                if (pause_options_scroll_offset > 2) pause_options_scroll_offset = 2;
+                if (pause_options_scroll_offset > max_pause_scroll) pause_options_scroll_offset = max_pause_scroll;
                 if (pause_options_selection < pause_options_scroll_offset) pause_options_selection = pause_options_scroll_offset;
                 if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_selection = pause_options_scroll_offset + 2;
             }
@@ -2938,54 +3004,55 @@ static void GameUpdate(void) {
             if (opt_top < 15) opt_top = 15;
             int opt_start_y = opt_top + 40;
 
-            int pause_sb_x = SCREEN_W - 26;
-            if (mouse_down && mouse_x >= pause_sb_x - 6 && mouse_x <= pause_sb_x + 14 && mouse_y >= opt_start_y - 7 && mouse_y <= opt_start_y + 81) is_dragging_scrollbar = true;
-            if (!mouse_down) is_dragging_scrollbar = false;
-
-            if (is_dragging_scrollbar) {
-                float rel_y = (float)(mouse_y - opt_start_y) / 56.0f;
-                if (rel_y < 0.0f) rel_y = 0.0f;
-                if (rel_y > 1.0f) rel_y = 1.0f;
-                pause_options_scroll_offset = (int)roundf(rel_y * 2.0f);
-                if (pause_options_scroll_offset < 0) pause_options_scroll_offset = 0;
-                if (pause_options_scroll_offset > 2) pause_options_scroll_offset = 2;
-                if (pause_options_selection < pause_options_scroll_offset) pause_options_selection = pause_options_scroll_offset;
-                if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_selection = pause_options_scroll_offset + 2;
+            // Botones triangulares en el lateral derecho (x: 204..239)
+            if (mouse_clicked && mouse_x >= 204 && mouse_x <= 239) {
+                if (mouse_y >= 44 && mouse_y <= 84) {
+                    if (pause_options_selection > 0) {
+                        pause_options_selection--;
+                        PlaySfx(sndHit);
+                    }
+                } else if (mouse_y >= 94 && mouse_y <= 136) {
+                    if (pause_options_selection < total_pause_opts - 1) {
+                        pause_options_selection++;
+                        PlaySfx(sndHit);
+                    }
+                }
             }
 
             if (m_up) {
-                pause_options_selection--;
-                if (pause_options_selection < 0) pause_options_selection = 4;
-                if (pause_options_selection < pause_options_scroll_offset) pause_options_scroll_offset = pause_options_selection;
-                if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_scroll_offset = pause_options_selection - 2;
-                PlaySfx(sndHit);
+                if (pause_options_selection > 0) {
+                    pause_options_selection--;
+                    PlaySfx(sndHit);
+                }
             }
             if (m_down) {
-                pause_options_selection++;
-                if (pause_options_selection > 4) pause_options_selection = 0;
-                if (pause_options_selection < pause_options_scroll_offset) pause_options_scroll_offset = pause_options_selection;
-                if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_scroll_offset = pause_options_selection - 2;
-                PlaySfx(sndHit);
+                if (pause_options_selection < total_pause_opts - 1) {
+                    pause_options_selection++;
+                    PlaySfx(sndHit);
+                }
             }
+
+            if (pause_options_selection < pause_options_scroll_offset) pause_options_scroll_offset = pause_options_selection;
+            if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_scroll_offset = pause_options_selection - 2;
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char pause_opt_strings[5][64];
+            char pause_opt_strings[6][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
 
-            int p_row_w = 190;
-            int p_row_x = (SCREEN_W - p_row_w) / 2;
+            int p_row_w = 175;
+            int p_row_x = 25;
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = pause_options_scroll_offset + slot;
+                if (opt_idx >= total_pause_opts) break;
                 int row_y = opt_start_y + (slot * 30);
-                if (mouse_x >= p_row_x && mouse_x <= p_row_x + p_row_w && mouse_y >= row_y - 2 && mouse_y <= row_y + 22) {
-                    if (mouse_moved) pause_options_selection = opt_idx;
-                    if (mouse_clicked) {
-                        pause_options_selection = opt_idx;
+                if (mouse_clicked && mouse_x >= p_row_x && mouse_x <= p_row_x + p_row_w && mouse_y >= row_y - 2 && mouse_y <= row_y + 22) {
+                    if (pause_options_selection == opt_idx) {
                         const char* str = pause_opt_strings[opt_idx];
                         const char* left_arrow = strchr(str, '<');
                         const char* right_arrow = strrchr(str, '>');
@@ -3001,6 +3068,9 @@ static void GameUpdate(void) {
                         } else {
                             m_accept = true;
                         }
+                    } else {
+                        pause_options_selection = opt_idx;
+                        PlaySfx(sndHit);
                     }
                 }
             }
@@ -3017,6 +3087,9 @@ static void GameUpdate(void) {
             } else if (pause_options_selection == 3) { 
                 if (m_accept) { state = 4; controls_origin_state = 12; controls_selection = 0; rebinding_action = -1; just_entered_menu = true; PlaySfx(sndHit); }
             } else if (pause_options_selection == 4) { 
+                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+            } else if (pause_options_selection == 5) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.target_fps = (g_config.target_fps - 1 + FPS_OPTION_COUNT) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
             }
@@ -3172,65 +3245,49 @@ static void GameUpdate(void) {
                     }
                 }
 
-                int grid_start_x = (SCREEN_W - 192) / 2;
-                int track_y = rec_top + 22;
-                int track_h = 67;
-                int scrollbar_x = grid_start_x + 192 + 7;
-                int scrollbar_w = 5;
-
-                // Arrastre e interacción con barra de desplazamiento lateral
-                if (mouse_clicked && mouse_x >= scrollbar_x - 3 && mouse_x <= scrollbar_x + scrollbar_w + 3 && mouse_y >= track_y && mouse_y <= track_y + track_h) {
-                    is_dragging_ach_scroll = true;
-                }
-                if (!mouse_down) is_dragging_ach_scroll = false;
-
-                if (is_dragging_ach_scroll) {
-                    int my_clamped = mouse_y;
-                    if (my_clamped < track_y) my_clamped = track_y;
-                    if (my_clamped > track_y + track_h) my_clamped = track_y + track_h;
+                // Botones triangulares en lateral derecho (x: 204..239)
+                if (mouse_clicked && mouse_x >= 204 && mouse_x <= 239) {
                     int total_pages = (NUM_ACHIEVEMENTS + 7) / 8;
-                    int target_page = ((my_clamped - track_y) * total_pages) / track_h;
-                    if (target_page >= total_pages) target_page = total_pages - 1;
-                    if (target_page < 0) target_page = 0;
                     int cur_p = selected_ach_index / 8;
-                    if (target_page != cur_p) {
-                        selected_ach_index = target_page * 8 + (selected_ach_index % 8);
-                        if (selected_ach_index >= NUM_ACHIEVEMENTS) selected_ach_index = NUM_ACHIEVEMENTS - 1;
-                        show_ach_details = false;
-                        PlaySfx(sndHit);
-                    }
-                }
-
-                int p_center = SCREEN_W / 2;
-                if (!show_ach_details && mouse_clicked && mouse_y >= 106 && mouse_y <= 118) {
-                    if (mouse_x >= p_center - 35 && mouse_x <= p_center - 10) {
-                        if (selected_ach_index >= 8) selected_ach_index -= 8;
-                        else selected_ach_index = (NUM_ACHIEVEMENTS - 1);
-                        PlaySfx(sndHit);
-                    } else if (mouse_x >= p_center + 10 && mouse_x <= p_center + 35) {
-                        if (selected_ach_index + 8 < NUM_ACHIEVEMENTS) selected_ach_index += 8;
-                        else selected_ach_index = 0;
-                        PlaySfx(sndHit);
-                    }
-                }
-
-                for (int ach_i = 0; ach_i < NUM_ACHIEVEMENTS; ach_i++) {
-                    int page_base = (selected_ach_index / 8) * 8;
-                    int i_local = ach_i - page_base;
-                    if (i_local < 0 || i_local >= 8) continue;
-
-                    int row = i_local / 4;
-                    int col = i_local % 4;
-                    int bx = grid_start_x + (col * 52);
-                    int by = rec_top + 22 + (row * 35);
-                    if (mouse_clicked && mouse_x >= bx && mouse_x <= bx + 36 && mouse_y >= by && mouse_y <= by + 32) {
-                        if (selected_ach_index == ach_i && show_ach_details) {
+                    if (mouse_y >= 44 && mouse_y <= 84) {
+                        // Triangulo Arriba: sube de pagina si no esta en la primera
+                        if (cur_p > 0) {
+                            selected_ach_index -= 8;
+                            if (selected_ach_index < 0) selected_ach_index = 0;
                             show_ach_details = false;
-                        } else {
+                            PlaySfx(sndHit);
+                        }
+                    } else if (mouse_y >= 94 && mouse_y <= 136) {
+                        // Triangulo Abajo: baja de pagina si no esta en la ultima
+                        if (cur_p < total_pages - 1) {
+                            selected_ach_index += 8;
+                            if (selected_ach_index >= NUM_ACHIEVEMENTS) selected_ach_index = NUM_ACHIEVEMENTS - 1;
+                            show_ach_details = false;
+                            PlaySfx(sndHit);
+                        }
+                    }
+                }
+
+                if (show_ach_details && mouse_clicked && (mouse_x < 204)) {
+                    show_ach_details = false;
+                    PlaySfx(sndHit);
+                } else if (!show_ach_details && mouse_clicked && (mouse_x < 204)) {
+                    int grid_start_x = (SCREEN_W - 192) / 2;
+                    for (int ach_i = 0; ach_i < NUM_ACHIEVEMENTS; ach_i++) {
+                        int page_base = (selected_ach_index / 8) * 8;
+                        int i_local = ach_i - page_base;
+                        if (i_local < 0 || i_local >= 8) continue;
+
+                        int row = i_local / 4;
+                        int col = i_local % 4;
+                        int bx = grid_start_x + (col * 52);
+                        int by = rec_top + 22 + (row * 35);
+                        if (mouse_x >= bx && mouse_x <= bx + 36 && mouse_y >= by && mouse_y <= by + 32) {
                             selected_ach_index = ach_i;
                             show_ach_details = true;
+                            PlaySfx(sndHit);
+                            break;
                         }
-                        PlaySfx(sndHit);
                     }
                 }
 
@@ -3708,7 +3765,7 @@ static void GameUpdate(void) {
                     UnlockAchievement(ACH_MODO_DIOS);
                 }
 
-                bool is_sprinting = IsKeyDown(g_keys.key_turbo) || (pad_active && IsGamepadButtonDown(pad_id, g_pad.btn_turbo));
+                bool is_sprinting = IsKeyDown(g_keys.key_turbo) || (pad_active && IsGamepadButtonDown(pad_id, g_pad.btn_turbo)) || mobile.turbo_down;
                 int speed = is_sprinting ? 4 : 2;
                 int mx_dir = 0, my_dir = 0;
 
@@ -5384,17 +5441,31 @@ static void GameUpdate(void) {
                     }
                 }
 
-                // Barra de desplazamiento lateral de Logros
-                int track_y = rec_top + 22;
-                int track_h = 67;
-                int scrollbar_x = grid_start_x + 192 + 7;
-                int scrollbar_w = 5;
-                DrawBevelledBoxPC(scrollbar_x, track_y, scrollbar_w, track_h, GBA_COLOR(1, 3, 6), GBA_COLOR(6, 10, 16), true);
+                // Triangulos de navegacion de Logros en lateral derecho (x: 204..239)
                 int total_pages = (NUM_ACHIEVEMENTS + 7) / 8;
                 int cur_page = selected_ach_index / 8;
-                int thumb_h = 13;
-                int thumb_y = track_y + (cur_page * (track_h - thumb_h)) / (total_pages > 1 ? (total_pages - 1) : 1);
-                DrawBevelledBoxPC(scrollbar_x, thumb_y, scrollbar_w, thumb_h, is_dragging_ach_scroll ? WHITE : C_YELLOW, GBA_COLOR(31, 24, 0), true);
+
+                bool can_ach_up = (cur_page > 0);
+                Color ach_up_col = can_ach_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
+                Color ach_up_border = can_ach_up ? WHITE : GBA_COLOR(10, 14, 18);
+                Vector2 a1_up = { 224, 52 };
+                Vector2 a2_up = { 213, 72 };
+                Vector2 a3_up = { 235, 72 };
+                DrawTriangle(a1_up, a2_up, a3_up, ach_up_col);
+                DrawTriangleLines(a1_up, a2_up, a3_up, ach_up_border);
+
+                char page_buf[16];
+                snprintf(page_buf, sizeof(page_buf), "%d/%d", cur_page + 1, total_pages);
+                DrawStringCustom(page_buf, 214, 87, C_CYAN, 1);
+
+                bool can_ach_dn = (cur_page < total_pages - 1);
+                Color ach_dn_col = can_ach_dn ? C_YELLOW : GBA_COLOR(6, 8, 12);
+                Color ach_dn_border = can_ach_dn ? WHITE : GBA_COLOR(10, 14, 18);
+                Vector2 a1_dn = { 213, 106 };
+                Vector2 a2_dn = { 235, 106 };
+                Vector2 a3_dn = { 224, 126 };
+                DrawTriangle(a1_dn, a2_dn, a3_dn, ach_dn_col);
+                DrawTriangleLines(a1_dn, a2_dn, a3_dn, ach_dn_border);
 
                 if (show_ach_details) {
                     int pop_w = 200;
@@ -5451,10 +5522,8 @@ static void GameUpdate(void) {
                         snprintf(prog_buf, sizeof(prog_buf), "%s: %d", T(STR_PROGRESS), g_achievement_progress[selected_ach_index]);
                     }
                     DrawStringCustom(prog_buf, pop_x + 9, pop_y + 35, g_achievements_unlocked[selected_ach_index] ? C_GREEN : GBA_COLOR(31, 10, 10), 1);
+                    DrawCenteredStringCustom(T(STR_TOUCH_BACK), pop_y + 46, GBA_COLOR(10, 18, 24), 1);
                 } else {
-                    char page_buf[32];
-                    snprintf(page_buf, sizeof(page_buf), "< %d/%d >", (start_index / 8) + 1, total_pages);
-                    DrawCenteredStringCustom(page_buf, 111, C_CYAN, 1);
                     DrawCenteredStringCustom(T(STR_ACH_DETAILS_HINT), 125, GBA_COLOR(12, 18, 24), 1);
                 }
             }
@@ -5474,24 +5543,27 @@ static void GameUpdate(void) {
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char opt_strings[7][64];
+            char opt_strings[8][64];
             snprintf(opt_strings[0], sizeof(opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], sizeof(opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(opt_strings[2], sizeof(opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
-            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s", T(STR_DELETE_RECORDS));
+            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
 
-            int opt_icons[7] = {
+            int opt_icons[8] = {
                 MENU_ICON_AUDIO, MENU_ICON_AUDIO, MENU_ICON_VIDEO, MENU_ICON_CONTROLS,
-                MENU_ICON_NONE, MENU_ICON_VIDEO, MENU_ICON_EXIT
+                MENU_ICON_NONE, MENU_ICON_VIDEO, MENU_ICON_VIDEO, MENU_ICON_EXIT
             };
 
-            int row_w = 180;
-            int row_x = (SCREEN_W - row_w) / 2;
+            int total_opts = 8;
+            int row_w = 175;
+            int row_x = 25;
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = options_scroll_offset + slot;
+                if (opt_idx >= total_opts) break;
                 int row_y = opt_start_y + (slot * 30);
                 bool is_sel = (options_selection == opt_idx);
 
@@ -5518,10 +5590,24 @@ static void GameUpdate(void) {
                 }
             }
 
-            int scrollbar_x = SCREEN_W - 28;
-            DrawBevelledBoxPC(scrollbar_x, opt_start_y - 2, 6, 88, GBA_COLOR(3, 2, 8), GBA_COLOR(12, 8, 20), true);
-            int bar_thumb_y = opt_start_y + (options_scroll_offset * 62) / 4;
-            DrawBevelledBoxPC(scrollbar_x + 1, bar_thumb_y, 4, 18, is_dragging_scrollbar ? WHITE : GBA_COLOR(31, 28, 0), is_dragging_scrollbar ? C_CYAN : GBA_COLOR(31, 24, 0), true);
+            // Botones triangulares arriba y abajo en el lateral derecho
+            bool can_scroll_up = (options_selection > 0);
+            Color up_col = can_scroll_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
+            Color up_border = can_scroll_up ? WHITE : GBA_COLOR(10, 14, 18);
+            Vector2 p1_up = { 224, 52 };
+            Vector2 p2_up = { 213, 72 };
+            Vector2 p3_up = { 235, 72 };
+            DrawTriangle(p1_up, p2_up, p3_up, up_col);
+            DrawTriangleLines(p1_up, p2_up, p3_up, up_border);
+
+            bool can_scroll_down = (options_selection < total_opts - 1);
+            Color down_col = can_scroll_down ? C_YELLOW : GBA_COLOR(6, 8, 12);
+            Color down_border = can_scroll_down ? WHITE : GBA_COLOR(10, 14, 18);
+            Vector2 p1_dn = { 213, 106 };
+            Vector2 p2_dn = { 235, 106 };
+            Vector2 p3_dn = { 224, 126 };
+            DrawTriangle(p1_dn, p2_dn, p3_dn, down_col);
+            DrawTriangleLines(p1_dn, p2_dn, p3_dn, down_border);
         }
         else if (state == 12) {
             DrawRectangle(0, 0, SCREEN_W, SCREEN_H, C_PAUSE_OPT_BG);
@@ -5542,32 +5628,33 @@ static void GameUpdate(void) {
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char pause_opt_strings[5][64];
+            char pause_opt_strings[6][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
+            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
 
-            int p_icons[5] = {
+            int p_icons[6] = {
                 MENU_ICON_AUDIO, MENU_ICON_AUDIO, MENU_ICON_VIDEO, MENU_ICON_CONTROLS,
-                MENU_ICON_VIDEO
+                MENU_ICON_VIDEO, MENU_ICON_VIDEO
             };
 
-            int p_row_w = 190;
-            int p_row_x = (SCREEN_W - p_row_w) / 2;
+            int total_pause_opts = 6;
+            int p_row_w = 175;
+            int p_row_x = 25;
             int opt_start_y = opt_top + 40;
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = pause_options_scroll_offset + slot;
-                if (opt_idx < 0) opt_idx = 0;
-                if (opt_idx > 4) opt_idx = 4;
+                if (opt_idx >= total_pause_opts) break;
 
                 int row_y = opt_start_y + (slot * 30);
                 bool is_sel = (pause_options_selection == opt_idx);
 
                 Color p_bg = is_sel ? GBA_COLOR(2, 10, 18) : GBA_COLOR(1, 4, 10);
                 Color p_border = is_sel ? C_CYAN : GBA_COLOR(0, 18, 26);
-                DrawBevelledBoxPC(p_row_w ? p_row_x : 0, row_y - 4, p_row_w, 22, p_bg, p_border, true);
+                DrawBevelledBoxPC(p_row_x, row_y - 4, p_row_w, 22, p_bg, p_border, true);
 
                 if (is_sel) {
                     float pulse = (sinf((float)frame_count * 0.14f) + 1.0f) * 0.5f;
@@ -5586,14 +5673,37 @@ static void GameUpdate(void) {
                 DrawMenuIconPC(p_icons[opt_idx], is_sel ? p_row_x + 18 : p_row_x + 6, row_y + 3, is_sel ? C_CYAN : GBA_COLOR(0, 18, 24));
             }
 
-            int p_scrollbar_x = SCREEN_W - 24;
-            DrawBevelledBoxPC(p_scrollbar_x, opt_start_y - 4, 5, 90, GBA_COLOR(2, 6, 12), GBA_COLOR(0, 20, 28), true);
-            int bar_thumb_y = opt_start_y - 3 + (pause_options_scroll_offset * 62) / 2;
-            DrawBevelledBoxPC(p_scrollbar_x + 1, bar_thumb_y, 3, 20, is_dragging_scrollbar ? WHITE : C_CYAN, is_dragging_scrollbar ? WHITE : C_CYAN, false);
+            // Botones triangulares lateral derecho en pausa
+            bool can_p_scroll_up = (pause_options_selection > 0);
+            Color p_up_col = can_p_scroll_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
+            Color p_up_border = can_p_scroll_up ? WHITE : GBA_COLOR(10, 14, 18);
+            Vector2 p1_pup = { 224, 52 };
+            Vector2 p2_pup = { 213, 72 };
+            Vector2 p3_pup = { 235, 72 };
+            DrawTriangle(p1_pup, p2_pup, p3_pup, p_up_col);
+            DrawTriangleLines(p1_pup, p2_pup, p3_pup, p_up_border);
+
+            bool can_p_scroll_down = (pause_options_selection < total_pause_opts - 1);
+            Color p_down_col = can_p_scroll_down ? C_YELLOW : GBA_COLOR(6, 8, 12);
+            Color p_down_border = can_p_scroll_down ? WHITE : GBA_COLOR(10, 14, 18);
+            Vector2 p1_pdn = { 213, 106 };
+            Vector2 p2_pdn = { 235, 106 };
+            Vector2 p3_pdn = { 224, 126 };
+            DrawTriangle(p1_pdn, p2_pdn, p3_pdn, p_down_col);
+            DrawTriangleLines(p1_pdn, p2_pdn, p3_pdn, p_down_border);
 
             char pause_back_msg[48];
+#if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
+            if (g_last_input_device != INPUT_GAMEPAD) {
+                snprintf(pause_back_msg, sizeof(pause_back_msg), "%s", T(STR_TOUCH_BACK));
+            } else {
+                const char* p_back_key = "B";
+                snprintf(pause_back_msg, sizeof(pause_back_msg), T(STR_PRESS_BACK), p_back_key);
+            }
+#else
             const char* p_back_key = (g_last_input_device == INPUT_GAMEPAD) ? "B" : GetKeyNameCustom(g_keys.key_turbo);
             snprintf(pause_back_msg, sizeof(pause_back_msg), T(STR_PRESS_BACK), p_back_key);
+#endif
             int p_msg_len = MeasureStringCustom(pause_back_msg, 1);
             int p_cap_w = p_msg_len + 16;
             int p_cap_x = (SCREEN_W - p_cap_w) / 2;

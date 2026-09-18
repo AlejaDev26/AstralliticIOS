@@ -117,12 +117,20 @@ def patch_raylib():
         width = height;
         height = tmp;
     }"""
-        if recreate_target in content and "if (width < height)" not in content:
-            content = content.replace(recreate_target, recreate_replacement)
+        # Configurar CADisplayLink para soportar ProMotion 120Hz nativo en iPhone
+        dlink_target = "[displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];"
+        dlink_replacement = """if (@available(iOS 15.0, *)) {
+        displayLink.preferredFrameRateRange = CAFrameRateRangeMake(30.0, 120.0, 120.0);
+    } else {
+        displayLink.preferredFramesPerSecond = 120;
+    }
+    [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];"""
+        if dlink_target in content:
+            content = content.replace(dlink_target, dlink_replacement)
 
         with open(rcore_ios_path, "w", encoding="utf-8") as f:
             f.write(content)
-        print(f"[patch] Correctamente parcheado rcore_ios.c para orientacion horizontal.")
+        print(f"[patch] Correctamente parcheado rcore_ios.c para orientacion horizontal y ProMotion 120Hz.")
 
 if __name__ == "__main__":
     patch_raylib()

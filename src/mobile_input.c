@@ -85,15 +85,15 @@ void MobileInput_Update(bool gameplay_mode)
 
     int count = GetTouchPointCount();
     int i;
-    Vector2 p;
-    Vector2 fire_center  = { width - 76.0f * s, height - 120.0f * s };
-    Vector2 turbo_center = { width - 76.0f * s, height - 42.0f * s };
-    Vector2 dash_center  = { width - 162.0f * s, height - 60.0f * s };
-    Vector2 aim_center   = { width - 162.0f * s, height - 138.0f * s };
+    Vector2 fire_center  = { width - 70.0f * s, height - 95.0f * s };
+    Vector2 dash_center  = { width - 145.0f * s, height - 65.0f * s };
+    Vector2 turbo_center = { width - 75.0f * s, height - 160.0f * s };
+    Vector2 aim_center   = { width - 145.0f * s, height - 135.0f * s };
     Vector2 pause_center = { width - 48.0f * s, 36.0f * s };
     bool a_now = false;
     bool dash_now = false;
     bool pause_now = false;
+    Vector2 p = { 0 };
 
     g_state.up_down = false;
     g_state.down_down = false;
@@ -192,10 +192,10 @@ void MobileInput_Draw(bool gameplay_mode)
 
     Vector2 stick_center = g_stick_active ? g_stick_origin : (Vector2){ 82.0f * s, height - 85.0f * s };
     Vector2 stick_knob   = g_stick_active ? g_stick_knob : stick_center;
-    Vector2 fire_center  = { width - 76.0f * s, height - 120.0f * s };
-    Vector2 turbo_center = { width - 76.0f * s, height - 42.0f * s };
-    Vector2 dash_center  = { width - 162.0f * s, height - 60.0f * s };
-    Vector2 aim_center   = { width - 162.0f * s, height - 138.0f * s };
+    Vector2 fire_center  = { width - 70.0f * s, height - 95.0f * s };
+    Vector2 dash_center  = { width - 145.0f * s, height - 65.0f * s };
+    Vector2 turbo_center = { width - 75.0f * s, height - 160.0f * s };
+    Vector2 aim_center   = { width - 145.0f * s, height - 135.0f * s };
     Vector2 pause_center = { width - 48.0f * s, 36.0f * s };
 
     BeginBlendMode(BLEND_ALPHA);

@@ -623,8 +623,17 @@ void DrawMenuSpaceFramePC(Color bg_color, const char* title, Color title_color, 
 
     // Cápsula biselada para el mensaje de volver atrás (elevada y centrada, separada del borde)
     char back_msg[48];
+#if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
+    if (g_last_input_device != INPUT_GAMEPAD) {
+        snprintf(back_msg, sizeof(back_msg), "%s", T(STR_TOUCH_BACK));
+    } else {
+        const char* back_key_txt = "B";
+        snprintf(back_msg, sizeof(back_msg), T(STR_PRESS_BACK), back_key_txt);
+    }
+#else
     const char* back_key_txt = (g_last_input_device == INPUT_GAMEPAD) ? "B" : GetKeyNameCustom(g_keys.key_turbo);
     snprintf(back_msg, sizeof(back_msg), T(STR_PRESS_BACK), back_key_txt);
+#endif
     
     int msg_len = MeasureStringCustom(back_msg, 1);
     int cap_w = msg_len + 16;
