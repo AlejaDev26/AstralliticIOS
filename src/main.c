@@ -1314,7 +1314,6 @@ void loadConfigPC() {
 int g_screen_w = 240;
 int g_screen_h = 160;
 
-static RenderTexture2D g_res_buffer = { 0 };
 static RenderTexture2D target = { 0 };
 
 static TitleStar title_stars[MAX_TITLE_STARS];
@@ -1380,31 +1379,13 @@ void ApplyVSyncSetting(void) {
 void ApplyVideoSettings(void) {
     ApplyFpsSetting();
 
-    int sw = GetScreenWidth();
-    int sh = GetScreenHeight();
-    if (sh <= 0) sh = 160;
-    if (sw <= 0) sw = 240;
-    float aspect = (float)sw / (float)sh;
-
-    if (g_config.screen_mode == 0) {
-        g_screen_h = 160;
-        g_screen_w = (int)roundf(160.0f * aspect);
-    } else if (g_config.screen_mode == 1) {
-        g_screen_h = 160;
-        g_screen_w = (int)roundf(160.0f * (16.0f / 9.0f));
-    } else {
-        g_screen_w = 240;
-        g_screen_h = 160;
-    }
-    if (g_screen_w < 240) g_screen_w = 240;
-    if (g_screen_h < 160) g_screen_h = 160;
-
     AdaptStarsOnResolutionChange();
 
     if (IsWindowReady()) {
-        if (target.id > 0) UnloadRenderTexture(target);
-        target = LoadRenderTexture(g_screen_w, g_screen_h);
-        SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+        if (target.id <= 0) {
+            target = LoadRenderTexture(SCREEN_W, SCREEN_H);
+            SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+        }
     }
 }
 
@@ -2268,7 +2249,8 @@ static void GameUpdate(void) {
             g_device_toast_timer = 120;
         }
 
-        MobileInput_Update(state == 1);
+        bool is_gameplay = (state == 1 || state == 9 || state == 8);
+        MobileInput_Update(is_gameplay);
         MobileInputState mobile = MobileInput_GetState();
 
         float screen_render_w = (float)GetScreenWidth();
@@ -2307,7 +2289,6 @@ static void GameUpdate(void) {
         bool m_accept = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || pad_menu_accept || mobile.a_pressed;
         bool m_back   = IsKeyPressed(KEY_BACKSPACE) || esc_pressed || IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT) || pad_menu_back || mobile.b_pressed;
 
-        bool is_gameplay = (state == 1);
         bool is_menu_with_back_btn = (state == 4 || state == 5 || state == 6 || state == 7 || state == 10 || state == 12 || state == 15 || state == 16);
         if (!is_gameplay && is_menu_with_back_btn && mouse_clicked) {
             if (mouse_y >= SCREEN_H - 24 && mouse_y <= SCREEN_H && mouse_x >= 20 && mouse_x <= SCREEN_W - 20) {
@@ -2829,7 +2810,7 @@ static void GameUpdate(void) {
                 if (scroll_delta == 0) scroll_delta = (mouse_wheel > 0.0f) ? 1 : -1;
                 options_scroll_offset -= scroll_delta;
                 if (options_scroll_offset < 0) options_scroll_offset = 0;
-                if (options_scroll_offset > 5) options_scroll_offset = 5;
+                if (options_scroll_offset > 4) options_scroll_offset = 4;
                 if (options_selection < options_scroll_offset) options_selection = options_scroll_offset;
                 if (options_selection >= options_scroll_offset + 3) options_selection = options_scroll_offset + 2;
             }
@@ -2846,23 +2827,23 @@ static void GameUpdate(void) {
                 float rel_y = (float)(mouse_y - opt_start_y) / 56.0f;
                 if (rel_y < 0.0f) rel_y = 0.0f;
                 if (rel_y > 1.0f) rel_y = 1.0f;
-                options_scroll_offset = (int)roundf(rel_y * 5.0f);
+                options_scroll_offset = (int)roundf(rel_y * 4.0f);
                 if (options_scroll_offset < 0) options_scroll_offset = 0;
-                if (options_scroll_offset > 5) options_scroll_offset = 5;
+                if (options_scroll_offset > 4) options_scroll_offset = 4;
                 if (options_selection < options_scroll_offset) options_selection = options_scroll_offset;
                 if (options_selection >= options_scroll_offset + 3) options_selection = options_scroll_offset + 2;
             }
 
             if (m_up) {
                 options_selection--;
-                if (options_selection < 0) options_selection = 7;
+                if (options_selection < 0) options_selection = 6;
                 if (options_selection < options_scroll_offset) options_scroll_offset = options_selection;
                 if (options_selection >= options_scroll_offset + 3) options_scroll_offset = options_selection - 2;
                 PlaySfx(sndHit);
             }
             if (m_down) {
                 options_selection++;
-                if (options_selection > 7) options_selection = 0;
+                if (options_selection > 6) options_selection = 0;
                 if (options_selection < options_scroll_offset) options_scroll_offset = options_selection;
                 if (options_selection >= options_scroll_offset + 3) options_scroll_offset = options_selection - 2;
                 PlaySfx(sndHit);
@@ -2870,15 +2851,14 @@ static void GameUpdate(void) {
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char opt_strings[8][64];
+            char opt_strings[7][64];
             snprintf(opt_strings[0], sizeof(opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], sizeof(opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(opt_strings[2], sizeof(opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
-            snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
+            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s", T(STR_DELETE_RECORDS));
 
             int row_w = 180;
             int row_x = (SCREEN_W - row_w) / 2;
@@ -2894,15 +2874,12 @@ static void GameUpdate(void) {
                         const char* right_arrow = strrchr(str, '>');
 
                         if (left_arrow && right_arrow) {
-                            int total_w = MeasureStringCustom(str, 1);
-                            int text_start_x = (SCREEN_W - total_w) / 2;
-                            int left_arrow_pos_x = text_start_x + (int)(left_arrow - str) * 4;
-                            int right_arrow_pos_x = text_start_x + (int)(right_arrow - str) * 4;
-
-                            if (mouse_x >= left_arrow_pos_x - 4 && mouse_x <= left_arrow_pos_x + 6) {
+                            if (mouse_x < 100) {
                                 m_left = true;
-                            } else if (mouse_x >= right_arrow_pos_x - 4 && mouse_x <= right_arrow_pos_x + 6) {
+                            } else if (mouse_x > 140) {
                                 m_right = true;
+                            } else {
+                                m_accept = true;
                             }
                         } else {
                             m_accept = true;
@@ -2926,12 +2903,9 @@ static void GameUpdate(void) {
                 if (m_right || m_accept) { g_config.language = (g_config.language + 1) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.language = (g_config.language - 1 + LANG_COUNT) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 5) { 
-                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
-                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
-            } else if (options_selection == 6) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.target_fps = (g_config.target_fps - 1 + FPS_OPTION_COUNT) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
-            } else if (options_selection == 7) { 
+            } else if (options_selection == 6) { 
                 if (m_accept) { state = 10; confirm_selection = 0; just_entered_menu = true; PlaySfx(sndHit); }
             }
 
@@ -2955,7 +2929,7 @@ static void GameUpdate(void) {
                 if (scroll_delta == 0) scroll_delta = (mouse_wheel > 0.0f) ? 1 : -1;
                 pause_options_scroll_offset -= scroll_delta;
                 if (pause_options_scroll_offset < 0) pause_options_scroll_offset = 0;
-                if (pause_options_scroll_offset > 3) pause_options_scroll_offset = 3;
+                if (pause_options_scroll_offset > 2) pause_options_scroll_offset = 2;
                 if (pause_options_selection < pause_options_scroll_offset) pause_options_selection = pause_options_scroll_offset;
                 if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_selection = pause_options_scroll_offset + 2;
             }
@@ -2972,23 +2946,23 @@ static void GameUpdate(void) {
                 float rel_y = (float)(mouse_y - opt_start_y) / 56.0f;
                 if (rel_y < 0.0f) rel_y = 0.0f;
                 if (rel_y > 1.0f) rel_y = 1.0f;
-                pause_options_scroll_offset = (int)roundf(rel_y * 3.0f);
+                pause_options_scroll_offset = (int)roundf(rel_y * 2.0f);
                 if (pause_options_scroll_offset < 0) pause_options_scroll_offset = 0;
-                if (pause_options_scroll_offset > 3) pause_options_scroll_offset = 3;
+                if (pause_options_scroll_offset > 2) pause_options_scroll_offset = 2;
                 if (pause_options_selection < pause_options_scroll_offset) pause_options_selection = pause_options_scroll_offset;
                 if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_selection = pause_options_scroll_offset + 2;
             }
 
             if (m_up) {
                 pause_options_selection--;
-                if (pause_options_selection < 0) pause_options_selection = 5;
+                if (pause_options_selection < 0) pause_options_selection = 4;
                 if (pause_options_selection < pause_options_scroll_offset) pause_options_scroll_offset = pause_options_selection;
                 if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_scroll_offset = pause_options_selection - 2;
                 PlaySfx(sndHit);
             }
             if (m_down) {
                 pause_options_selection++;
-                if (pause_options_selection > 5) pause_options_selection = 0;
+                if (pause_options_selection > 4) pause_options_selection = 0;
                 if (pause_options_selection < pause_options_scroll_offset) pause_options_scroll_offset = pause_options_selection;
                 if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_scroll_offset = pause_options_selection - 2;
                 PlaySfx(sndHit);
@@ -2996,13 +2970,12 @@ static void GameUpdate(void) {
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char pause_opt_strings[6][64];
+            char pause_opt_strings[5][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
 
             int p_row_w = 190;
             int p_row_x = (SCREEN_W - p_row_w) / 2;
@@ -3018,15 +2991,12 @@ static void GameUpdate(void) {
                         const char* right_arrow = strrchr(str, '>');
 
                         if (left_arrow && right_arrow) {
-                            int total_w = MeasureStringCustom(str, 1);
-                            int text_start_x = (SCREEN_W - total_w) / 2;
-                            int left_arrow_pos_x = text_start_x + (int)(left_arrow - str) * 4;
-                            int right_arrow_pos_x = text_start_x + (int)(right_arrow - str) * 4;
-
-                            if (mouse_x >= left_arrow_pos_x - 4 && mouse_x <= left_arrow_pos_x + 6) {
+                            if (mouse_x < 100) {
                                 m_left = true;
-                            } else if (mouse_x >= right_arrow_pos_x - 4 && mouse_x <= right_arrow_pos_x + 6) {
+                            } else if (mouse_x > 140) {
                                 m_right = true;
+                            } else {
+                                m_accept = true;
                             }
                         } else {
                             m_accept = true;
@@ -3047,9 +3017,6 @@ static void GameUpdate(void) {
             } else if (pause_options_selection == 3) { 
                 if (m_accept) { state = 4; controls_origin_state = 12; controls_selection = 0; rebinding_action = -1; just_entered_menu = true; PlaySfx(sndHit); }
             } else if (pause_options_selection == 4) { 
-                if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
-                else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
-            } else if (pause_options_selection == 5) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
                 else if (m_left) { g_config.target_fps = (g_config.target_fps - 1 + FPS_OPTION_COUNT) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
             }
@@ -3543,7 +3510,10 @@ static void GameUpdate(void) {
 
             if (state == 14) {
                 intro_timer++;
-                if (intro_timer > 250) { state = 0; PlayGameBgm(0); }
+                if (intro_timer > 250 || m_accept || mouse_clicked || GetTouchPointCount() > 0) {
+                    state = 0;
+                    PlayGameBgm(0);
+                }
             } 
             else if (state == 0 || state == 13) {
                 for(int s = 0; s < MAX_TITLE_STARS; s++) {
@@ -5504,19 +5474,18 @@ static void GameUpdate(void) {
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char opt_strings[8][64];
+            char opt_strings[7][64];
             snprintf(opt_strings[0], sizeof(opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], sizeof(opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(opt_strings[2], sizeof(opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
-            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
-            snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
+            snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s", T(STR_DELETE_RECORDS));
 
-            int opt_icons[8] = {
+            int opt_icons[7] = {
                 MENU_ICON_AUDIO, MENU_ICON_AUDIO, MENU_ICON_VIDEO, MENU_ICON_CONTROLS,
-                MENU_ICON_NONE, MENU_ICON_VIDEO, MENU_ICON_VIDEO, MENU_ICON_EXIT
+                MENU_ICON_NONE, MENU_ICON_VIDEO, MENU_ICON_EXIT
             };
 
             int row_w = 180;
@@ -5551,7 +5520,7 @@ static void GameUpdate(void) {
 
             int scrollbar_x = SCREEN_W - 28;
             DrawBevelledBoxPC(scrollbar_x, opt_start_y - 2, 6, 88, GBA_COLOR(3, 2, 8), GBA_COLOR(12, 8, 20), true);
-            int bar_thumb_y = opt_start_y + (options_scroll_offset * 62) / 5;
+            int bar_thumb_y = opt_start_y + (options_scroll_offset * 62) / 4;
             DrawBevelledBoxPC(scrollbar_x + 1, bar_thumb_y, 4, 18, is_dragging_scrollbar ? WHITE : GBA_COLOR(31, 28, 0), is_dragging_scrollbar ? C_CYAN : GBA_COLOR(31, 24, 0), true);
         }
         else if (state == 12) {
@@ -5573,17 +5542,16 @@ static void GameUpdate(void) {
 
             const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
 
-            char pause_opt_strings[6][64];
+            char pause_opt_strings[5][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
-            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
 
-            int p_icons[6] = {
+            int p_icons[5] = {
                 MENU_ICON_AUDIO, MENU_ICON_AUDIO, MENU_ICON_VIDEO, MENU_ICON_CONTROLS,
-                MENU_ICON_VIDEO, MENU_ICON_VIDEO
+                MENU_ICON_VIDEO
             };
 
             int p_row_w = 190;
@@ -5592,7 +5560,7 @@ static void GameUpdate(void) {
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = pause_options_scroll_offset + slot;
                 if (opt_idx < 0) opt_idx = 0;
-                if (opt_idx > 5) opt_idx = 5;
+                if (opt_idx > 4) opt_idx = 4;
 
                 int row_y = opt_start_y + (slot * 30);
                 bool is_sel = (pause_options_selection == opt_idx);
@@ -5620,7 +5588,7 @@ static void GameUpdate(void) {
 
             int p_scrollbar_x = SCREEN_W - 24;
             DrawBevelledBoxPC(p_scrollbar_x, opt_start_y - 4, 5, 90, GBA_COLOR(2, 6, 12), GBA_COLOR(0, 20, 28), true);
-            int bar_thumb_y = opt_start_y - 3 + (pause_options_scroll_offset * 62) / 3;
+            int bar_thumb_y = opt_start_y - 3 + (pause_options_scroll_offset * 62) / 2;
             DrawBevelledBoxPC(p_scrollbar_x + 1, bar_thumb_y, 3, 20, is_dragging_scrollbar ? WHITE : C_CYAN, is_dragging_scrollbar ? WHITE : C_CYAN, false);
 
             char pause_back_msg[48];
@@ -6143,66 +6111,19 @@ static void GameUpdate(void) {
 
         EndTextureMode();
 
-        if (g_res_buffer.id <= 0) {
-            ApplyVideoSettings();
-        }
-
-        // --- RENDERIZADO AL BÚFER DE RESOLUCIÓN CON SHADER CRT ---
-        BeginTextureMode(g_res_buffer);
+        // --- RENDERIZADO AL MONITOR CON SCREEN SHAKE Y SHADER CRT ---
+        BeginDrawing();
         ClearBackground(BLACK);
 
-        if (g_config.crt_filter > 0) {
+        if (g_config.crt_filter > 0 && crtShader.id > 0) {
             SetShaderValue(crtShader, filterTypeLoc, &g_config.crt_filter, SHADER_UNIFORM_INT);
-            float rsize[2] = { (float)g_res_buffer.texture.width, (float)g_res_buffer.texture.height };
+            float rsize[2] = { (float)SCREEN_W, (float)SCREEN_H };
             SetShaderValue(crtShader, renderSizeLoc, rsize, SHADER_UNIFORM_VEC2);
             BeginShaderMode(crtShader);
         }
 
-        float buf_rw = (float)g_res_buffer.texture.width;
-        float buf_rh = (float)g_res_buffer.texture.height;
-
-        float roll_angle = 0.0f;
-        if (g_barrel_roll_timer > 0.0f) {
-            g_barrel_roll_timer -= frame_dt;
-            if (g_barrel_roll_timer < 0.0f) g_barrel_roll_timer = 0.0f;
-            float p = 1.0f - (g_barrel_roll_timer / 1.0f);
-            float ease = 0.5f - 0.5f * cosf(p * 3.14159265f);
-            roll_angle = ease * 360.0f;
-        }
-
-        if (roll_angle > 0.0f && roll_angle < 360.0f) {
-            DrawTexturePro(
-                target.texture,
-                (Rectangle){ 0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height },
-                (Rectangle){ buf_rw * 0.5f, buf_rh * 0.5f, buf_rw, buf_rh },
-                (Vector2){ buf_rw * 0.5f, buf_rh * 0.5f },
-                roll_angle,
-                WHITE
-            );
-        } else {
-            float src_w = (float)target.texture.width;
-            if (g_cheat_flip_active && (state == 1 || state == 9 || state == 3 || state == 8)) {
-                src_w = -src_w;
-            }
-            DrawTexturePro(
-                target.texture,
-                (Rectangle){ 0.0f, 0.0f, src_w, (float)-target.texture.height },
-                (Rectangle){ 0.0f, 0.0f, buf_rw, buf_rh },
-                (Vector2){ 0.0f, 0.0f },
-                0.0f,
-                WHITE
-            );
-        }
-
-        if (g_config.crt_filter > 0) EndShaderMode();
-        EndTextureMode();
-
-        // --- RENDERIZADO AL MONITOR CON SCREEN SHAKE Y GLITCH ---
-        BeginDrawing();
-        ClearBackground(BLACK);
-
-        float final_offset_x = 0.0f;
-        float final_offset_y = 0.0f;
+        float final_offset_x = offset_x;
+        float final_offset_y = offset_y;
         if (screen_shake_timer > 0 && (state == 1 || state == 9)) {
             final_offset_x += (float)((rand() % 5) - 2) * scale_val * 0.75f;
             final_offset_y += (float)((rand() % 5) - 2) * scale_val * 0.75f;
@@ -6216,14 +6137,39 @@ static void GameUpdate(void) {
             base_jitter_y = (float)((rand() % 3) - 1) * scale_val * t_glitch;
         }
 
-        DrawTexturePro(
-            g_res_buffer.texture,
-            (Rectangle){ 0.0f, 0.0f, (float)g_res_buffer.texture.width, (float)-g_res_buffer.texture.height },
-            (Rectangle){ offset_x + final_offset_x + base_jitter_x, offset_y + final_offset_y + base_jitter_y, render_w, render_h },
-            (Vector2){ 0.0f, 0.0f },
-            0.0f,
-            WHITE
-        );
+        float roll_angle = 0.0f;
+        if (g_barrel_roll_timer > 0.0f) {
+            g_barrel_roll_timer -= frame_dt;
+            if (g_barrel_roll_timer < 0.0f) g_barrel_roll_timer = 0.0f;
+            float p = 1.0f - (g_barrel_roll_timer / 1.0f);
+            float ease = 0.5f - 0.5f * cosf(p * 3.14159265f);
+            roll_angle = ease * 360.0f;
+        }
+
+        float src_w = (float)target.texture.width;
+        if (g_cheat_flip_active && (state == 1 || state == 9 || state == 3 || state == 8)) {
+            src_w = -src_w;
+        }
+
+        if (roll_angle > 0.0f && roll_angle < 360.0f) {
+            DrawTexturePro(
+                target.texture,
+                (Rectangle){ 0.0f, 0.0f, src_w, (float)-target.texture.height },
+                (Rectangle){ final_offset_x + base_jitter_x + render_w * 0.5f, final_offset_y + base_jitter_y + render_h * 0.5f, render_w, render_h },
+                (Vector2){ render_w * 0.5f, render_h * 0.5f },
+                roll_angle,
+                WHITE
+            );
+        } else {
+            DrawTexturePro(
+                target.texture,
+                (Rectangle){ 0.0f, 0.0f, src_w, (float)-target.texture.height },
+                (Rectangle){ final_offset_x + base_jitter_x, final_offset_y + base_jitter_y, render_w, render_h },
+                (Vector2){ 0.0f, 0.0f },
+                0.0f,
+                WHITE
+            );
+        }
 
         if (t_glitch > 0.05f) {
             int num_slices = (int)(t_glitch * 9.0f) + 2;
@@ -6231,26 +6177,27 @@ static void GameUpdate(void) {
                 int slice_y = rand() % (SCREEN_H - 12);
                 int slice_h = (rand() % 10) + 3;
                 float shift_x = (float)((rand() % 17) - 8) * t_glitch * scale_val;
-
-                float src_slice_y = ((float)slice_y / (float)SCREEN_H) * (float)g_res_buffer.texture.height;
-                float src_slice_h = ((float)slice_h / (float)SCREEN_H) * (float)g_res_buffer.texture.height;
+                float slice_dest_y = final_offset_y + ((float)slice_y / (float)SCREEN_H) * render_h;
+                float slice_dest_h = ((float)slice_h / (float)SCREEN_H) * render_h;
+                float src_slice_y = ((float)slice_y / (float)SCREEN_H) * (float)target.texture.height;
+                float src_slice_h = ((float)slice_h / (float)SCREEN_H) * (float)target.texture.height;
 
                 if (t_glitch > 0.25f) {
                     float ghost_offset = (3.0f * t_glitch * scale_val);
                     // Split cromatico Rojo
                     DrawTexturePro(
-                        g_res_buffer.texture,
-                        (Rectangle){ 0.0f, src_slice_y, (float)g_res_buffer.texture.width, -src_slice_h },
-                        (Rectangle){ offset_x + final_offset_x + shift_x - ghost_offset, offset_y + final_offset_y + (slice_y * scale_y), render_w, slice_h * scale_y },
+                        target.texture,
+                        (Rectangle){ 0.0f, src_slice_y, src_w, -src_slice_h },
+                        (Rectangle){ final_offset_x + shift_x - ghost_offset, slice_dest_y, render_w, slice_dest_h },
                         (Vector2){ 0.0f, 0.0f },
                         0.0f,
                         (Color){ 255, 60, 60, (unsigned char)(160 * t_glitch) }
                     );
                     // Split cromatico Cian
                     DrawTexturePro(
-                        g_res_buffer.texture,
-                        (Rectangle){ 0.0f, src_slice_y, (float)g_res_buffer.texture.width, -src_slice_h },
-                        (Rectangle){ offset_x + final_offset_x + shift_x + ghost_offset, offset_y + final_offset_y + (slice_y * scale_y), render_w, slice_h * scale_y },
+                        target.texture,
+                        (Rectangle){ 0.0f, src_slice_y, src_w, -src_slice_h },
+                        (Rectangle){ final_offset_x + shift_x + ghost_offset, slice_dest_y, render_w, slice_dest_h },
                         (Vector2){ 0.0f, 0.0f },
                         0.0f,
                         (Color){ 60, 255, 255, (unsigned char)(160 * t_glitch) }
@@ -6259,9 +6206,9 @@ static void GameUpdate(void) {
 
                 // Tira desplazada principal
                 DrawTexturePro(
-                    g_res_buffer.texture,
-                    (Rectangle){ 0.0f, src_slice_y, (float)g_res_buffer.texture.width, -src_slice_h },
-                    (Rectangle){ offset_x + final_offset_x + shift_x, offset_y + final_offset_y + (slice_y * scale_y), render_w, slice_h * scale_y },
+                    target.texture,
+                    (Rectangle){ 0.0f, src_slice_y, src_w, -src_slice_h },
+                    (Rectangle){ final_offset_x + shift_x, slice_dest_y, render_w, slice_dest_h },
                     (Vector2){ 0.0f, 0.0f },
                     0.0f,
                     WHITE
@@ -6272,10 +6219,10 @@ static void GameUpdate(void) {
             if (t_glitch > 0.2f) {
                 int num_bars = (int)(t_glitch * 5.0f) + 1;
                 for (int b = 0; b < num_bars; b++) {
-                    int bar_y = (int)(offset_y + final_offset_y) + (rand() % (int)render_h);
+                    int bar_y = (int)final_offset_y + (rand() % (int)render_h);
                     int bar_h = (rand() % (int)(2 * scale_y + 1)) + 1;
                     int bar_w = (rand() % (int)(render_w * 0.7f)) + (int)(render_w * 0.2f);
-                    int bar_x = (int)(offset_x + final_offset_x) + (rand() % (int)(render_w - bar_w));
+                    int bar_x = (int)final_offset_x + (rand() % (int)(render_w - bar_w));
                     Color b_col = (rand() % 2 == 0) ? (Color){ 0, 255, 255, (unsigned char)(130 * t_glitch) } : (Color){ 255, 255, 255, (unsigned char)(150 * t_glitch) };
                     DrawRectangle(bar_x, bar_y, bar_w, bar_h, b_col);
                 }
@@ -6286,11 +6233,13 @@ static void GameUpdate(void) {
             if (snap > 0.05f) {
                 int flash_alpha = (int)(snap * 220.0f);
                 if (flash_alpha > 255) flash_alpha = 255;
-                int center_y = (int)(offset_y + final_offset_y + (render_h * 0.5f));
+                int center_y = (int)(final_offset_y + (render_h * 0.5f));
                 int beam_h = (int)(scale_y * (2.0f + (1.0f - snap) * 6.0f));
-                DrawRectangle((int)(offset_x + final_offset_x), center_y - (beam_h / 2), (int)render_w, beam_h, (Color){ 255, 255, 255, (unsigned char)flash_alpha });
+                DrawRectangle((int)final_offset_x, center_y - (beam_h / 2), (int)render_w, beam_h, (Color){ 255, 255, 255, (unsigned char)flash_alpha });
             }
         }
+
+        if (g_config.crt_filter > 0 && crtShader.id > 0) EndShaderMode();
 
         // Mascaras de recorte para barras negras (evita que el glitch o shake sangre a los bordes)
         if (offset_x > 0.0f) {
@@ -6302,6 +6251,7 @@ static void GameUpdate(void) {
             DrawRectangle(0, (int)(offset_y + render_h), (int)screen_render_w, (int)ceilf(offset_y) + 2, BLACK);
         }
 
+#if !defined(PLATFORM_ANDROID) && !defined(PLATFORM_IOS)
         if (m_pos.x >= offset_x && m_pos.x <= offset_x + render_w &&
             m_pos.y >= offset_y && m_pos.y <= offset_y + render_h &&
             g_last_input_device == INPUT_KEYBOARD) {
@@ -6310,6 +6260,7 @@ static void GameUpdate(void) {
         } else {
             ShowCursor();
         }
+#endif
 
 #if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
         bool show_touch_hud = (state == 1 || state == 9 || state == 8) && (g_last_input_device != INPUT_GAMEPAD);
