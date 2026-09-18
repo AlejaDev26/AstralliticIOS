@@ -86,9 +86,9 @@ void MobileInput_Update(bool gameplay_mode)
     int count = GetTouchPointCount();
     int i;
     Vector2 fire_center  = { width - 70.0f * s, height - 95.0f * s };
-    Vector2 dash_center  = { width - 145.0f * s, height - 65.0f * s };
-    Vector2 turbo_center = { width - 75.0f * s, height - 160.0f * s };
-    Vector2 aim_center   = { width - 145.0f * s, height - 135.0f * s };
+    Vector2 turbo_center = { width - 145.0f * s, height - 65.0f * s };
+    Vector2 dash_center  = { width - 145.0f * s, height - 135.0f * s };
+    Vector2 aim_center   = { width - 75.0f * s, height - 160.0f * s };
     Vector2 pause_center = { width - 48.0f * s, 36.0f * s };
     bool a_now = false;
     bool dash_now = false;
@@ -154,9 +154,9 @@ void MobileInput_Update(bool gameplay_mode)
         p = GetTouchPosition(i);
         if (id == g_stick_touch_id) continue;
         if (IsButtonZone(p, fire_center, button_radius)) a_now = true;
-        if (IsButtonZone(p, dash_center, button_radius - 3.0f * s)) dash_now = true;
-        if (IsButtonZone(p, turbo_center, 24.0f * s)) g_state.turbo_down = true;
-        if (IsButtonZone(p, aim_center, 24.0f * s)) g_state.aim_down = true;
+        if (IsButtonZone(p, turbo_center, 28.0f * s)) g_state.turbo_down = true;
+        if (IsButtonZone(p, dash_center, 28.0f * s)) dash_now = true;
+        if (IsButtonZone(p, aim_center, 26.0f * s)) g_state.aim_down = true;
         if (IsButtonZone(p, pause_center, 22.0f * s)) pause_now = true;
     }
 
@@ -182,6 +182,51 @@ MobileInputState MobileInput_GetState(void)
     return g_state;
 }
 
+static void DrawRetroButton(Vector2 center, float radius, const char *label, Color base_col, Color border_col, Color text_col, bool is_down, float s)
+{
+    int cx = (int)center.x;
+    int cy = (int)center.y;
+    int r = (int)radius;
+    int y_off = is_down ? (int)(2.0f * s) : 0;
+
+    // Sombra proyectada inferior
+    DrawRectangle(cx - r + 2, cy - r + 4, (r - 2) * 2, (r - 2) * 2, (Color){ 0, 0, 0, 90 });
+
+    // Fondo del botón con brillo extra si está pulsado
+    Color fill_col = is_down ? (Color){ (unsigned char)(base_col.r + 45 > 255 ? 255 : base_col.r + 45),
+                                        (unsigned char)(base_col.g + 45 > 255 ? 255 : base_col.g + 45),
+                                        (unsigned char)(base_col.b + 45 > 255 ? 255 : base_col.b + 45),
+                                        220 } : base_col;
+    DrawRectangle(cx - r + 2, cy - r + 2 + y_off, (r - 2) * 2, (r - 2) * 2, fill_col);
+
+    // Borde exterior biselado pixel art
+    DrawRectangleLines(cx - r + 2, cy - r + 2 + y_off, (r - 2) * 2, (r - 2) * 2, border_col);
+
+    // Relieve 3D superior e izquierdo estilo 16-bit
+    if (!is_down) {
+        DrawRectangle(cx - r + 4, cy - r + 4, (r - 4) * 2, 2, (Color){ 255, 255, 255, 120 });
+        DrawRectangle(cx - r + 4, cy - r + 4, 2, (r - 4) * 2, (Color){ 255, 255, 255, 120 });
+    }
+
+    // Remaches/esquinas pixeladas estilo arcade
+    int dot_s = (int)(3.0f * s);
+    if (dot_s < 2) dot_s = 2;
+    DrawRectangle(cx - r, cy - r + y_off, dot_s, dot_s, border_col);
+    DrawRectangle(cx + r - dot_s, cy - r + y_off, dot_s, dot_s, border_col);
+    DrawRectangle(cx - r, cy + r - dot_s + y_off, dot_s, dot_s, border_col);
+    DrawRectangle(cx + r - dot_s, cy + r - dot_s + y_off, dot_s, dot_s, border_col);
+
+    // Texto de la acción centrado con sombra
+    int font_sz = (int)(radius * 0.95f);
+    if (font_sz < 14) font_sz = 14;
+    int tw = MeasureText(label, font_sz);
+    int tx = cx - (tw / 2);
+    int ty = cy - (font_sz / 2) + y_off;
+
+    DrawText(label, tx + 1, ty + 1, font_sz, (Color){ 0, 0, 0, 180 });
+    DrawText(label, tx, ty, font_sz, text_col);
+}
+
 void MobileInput_Draw(bool gameplay_mode)
 {
     if (!gameplay_mode) return;
@@ -196,9 +241,9 @@ void MobileInput_Draw(bool gameplay_mode)
     Vector2 stick_center = g_stick_active ? g_stick_origin : (Vector2){ 120.0f * s, height - 85.0f * s };
     Vector2 stick_knob   = g_stick_active ? g_stick_knob : stick_center;
     Vector2 fire_center  = { width - 70.0f * s, height - 95.0f * s };
-    Vector2 dash_center  = { width - 145.0f * s, height - 65.0f * s };
-    Vector2 turbo_center = { width - 75.0f * s, height - 160.0f * s };
-    Vector2 aim_center   = { width - 145.0f * s, height - 135.0f * s };
+    Vector2 turbo_center = { width - 145.0f * s, height - 65.0f * s };
+    Vector2 dash_center  = { width - 145.0f * s, height - 135.0f * s };
+    Vector2 aim_center   = { width - 75.0f * s, height - 160.0f * s };
     Vector2 pause_center = { width - 48.0f * s, 36.0f * s };
 
     BeginBlendMode(BLEND_ALPHA);
@@ -236,30 +281,21 @@ void MobileInput_Draw(bool gameplay_mode)
     int c_pad = (int)(k_half * 0.45f);
     DrawRectangle(kx + c_pad, ky + c_pad, kw - c_pad * 2, kh - c_pad * 2, (Color){ 255, 255, 255, 140 });
 
-    int font_large = (int)(20.0f * s);
-    int font_med   = (int)(18.0f * s);
-    int font_small = (int)(15.0f * s);
+    // Botones con estética retro pixel-art arcade
+    // Botón A (Disparo - Rojo)
+    DrawRetroButton(fire_center, button_radius, "A", (Color){ 180, 30, 30, 155 }, (Color){ 255, 110, 110, 230 }, WHITE, g_state.fire_down, s);
 
-    // Botón A (Disparo)
-    DrawCircleV(fire_center, button_radius, (Color){ 190, 40, 40, 125 });
-    DrawCircleLines((int)fire_center.x, (int)fire_center.y, button_radius, (Color){ 255, 255, 255, 115 });
-    DrawText("A", (int)fire_center.x - (int)(6 * s), (int)fire_center.y - (int)(9 * s), font_large, (Color){255,255,255,210});
+    // Botón T (Turbo - Azul, ahora en la posición inferior)
+    DrawRetroButton(turbo_center, 26.0f * s, "T", (Color){ 25, 95, 200, 155 }, (Color){ 100, 215, 255, 230 }, WHITE, g_state.turbo_down, s);
 
-    // Botón D (Dash)
-    DrawCircleV(dash_center, button_radius - 3.0f * s, (Color){ 55, 120, 220, 105 });
-    DrawText("D", (int)dash_center.x - (int)(6 * s), (int)dash_center.y - (int)(9 * s), font_med, (Color){255,255,255,190});
+    // Botón D (Dash - Verde, ahora en la posición superior izquierda)
+    DrawRetroButton(dash_center, 26.0f * s, "D", (Color){ 20, 145, 80, 155 }, (Color){ 110, 255, 175, 230 }, WHITE, g_prev_dash, s);
 
-    // Botón T (Turbo)
-    DrawCircleV(turbo_center, 24.0f * s, (Color){ 210, 175, 30, 100 });
-    DrawText("T", (int)turbo_center.x - (int)(5 * s), (int)turbo_center.y - (int)(8 * s), font_med, (Color){255,255,255,185});
+    // Botón L (Aim Lock - Dorado/Amarillo, ahora en la posición superior derecha)
+    DrawRetroButton(aim_center, 24.0f * s, "L", (Color){ 195, 145, 20, 155 }, (Color){ 255, 230, 105, 230 }, WHITE, g_state.aim_down, s);
 
-    // Botón L (Aim Lock)
-    DrawCircleV(aim_center, 24.0f * s, (Color){ 50, 180, 150, 100 });
-    DrawText("L", (int)aim_center.x - (int)(5 * s), (int)aim_center.y - (int)(8 * s), font_med, (Color){255,255,255,185});
-
-    // Botón II (Pausa)
-    DrawCircleV(pause_center, 18.0f * s, (Color){ 35, 35, 40, 125 });
-    DrawText("II", (int)pause_center.x - (int)(7 * s), (int)pause_center.y - (int)(7 * s), font_small, (Color){255,255,255,190});
+    // Botón II (Pausa - Pizarra sci-fi)
+    DrawRetroButton(pause_center, 18.0f * s, "II", (Color){ 20, 30, 45, 155 }, (Color){ 0, 220, 255, 210 }, WHITE, g_prev_pause, s);
 
     EndBlendMode();
 }

@@ -3335,11 +3335,16 @@ static void GameUpdate(void) {
                 just_entered_menu = false;
             }
 
-            if (rebinding_action != -1) {
-                if (g_last_input_device == INPUT_GAMEPAD) {
+            if (g_last_input_device != INPUT_GAMEPAD) {
+                if (mouse_clicked || m_back || m_accept) {
+                    just_entered_menu = true;
+                    state = controls_origin_state;
+                    PlaySfx(sndHit);
+                }
+            } else {
+                if (rebinding_action != -1) {
                     for (int b = 1; b <= 17; b++) {
                         if (IsGamepadButtonPressed(pad_id, b)) {
-                            // Igual que en teclado: un boton solo puede pertenecer a una accion.
                             if (IsPadButtonAssignedPC(b, rebinding_action)) {
                                 duplicate_key_warning = 120;
                                 duplicate_key_warning_f = 120.0f;
@@ -3355,65 +3360,35 @@ static void GameUpdate(void) {
                         }
                     }
                 } else {
-                    int key_pressed = current_frame_key;
-                    if (key_pressed > 0) {
-                        if (key_pressed != KEY_ESCAPE && key_pressed != KEY_BACKSPACE) {
-                            bool is_duplicate = false;
-                            if (rebinding_action != 0 && g_keys.key_up == key_pressed) is_duplicate = true;
-                            if (rebinding_action != 1 && g_keys.key_down == key_pressed) is_duplicate = true;
-                            if (rebinding_action != 2 && g_keys.key_left == key_pressed) is_duplicate = true;
-                            if (rebinding_action != 3 && g_keys.key_right == key_pressed) is_duplicate = true;
-                            if (rebinding_action != 4 && g_keys.key_shoot == key_pressed) is_duplicate = true;
-                            if (rebinding_action != 5 && g_keys.key_turbo == key_pressed) is_duplicate = true;
-                            if (rebinding_action != 6 && g_keys.key_aim == key_pressed) is_duplicate = true;
-                            if (rebinding_action != 7 && g_keys.key_dash == key_pressed) is_duplicate = true;
+                    if (m_up)   controls_selection = (controls_selection - 1 + 8) % 8;
+                    if (m_down) controls_selection = (controls_selection + 1) % 8;
 
-                            if (is_duplicate) { duplicate_key_warning = 120; duplicate_key_warning_f = 120.0f; PlaySfx(sndHurt); } 
-                            else {
-                                if (rebinding_action == 0) g_keys.key_up = key_pressed;
-                                else if (rebinding_action == 1) g_keys.key_down = key_pressed;
-                                else if (rebinding_action == 2) g_keys.key_left = key_pressed;
-                                else if (rebinding_action == 3) g_keys.key_right = key_pressed;
-                                else if (rebinding_action == 4) g_keys.key_shoot = key_pressed;
-                                else if (rebinding_action == 5) g_keys.key_turbo = key_pressed;
-                                else if (rebinding_action == 6) g_keys.key_aim = key_pressed;
-                                else if (rebinding_action == 7) g_keys.key_dash = key_pressed;
-                                saveControlsPC(); PlaySfx(sndHit);
+                    int c_box_w = 210;
+                    int c_box_x = (SCREEN_W - c_box_w) / 2;
+                    int c_box_y = 42;
+                    for (int act_idx = 0; act_idx < 8; act_idx++) {
+                        int row_y = c_box_y + 4 + (act_idx * 11);
+                        if (mouse_x >= c_box_x && mouse_x <= c_box_x + c_box_w && mouse_y >= row_y - 2 && mouse_y <= row_y + 9) {
+                            if (mouse_moved) controls_selection = act_idx;
+                            if (mouse_clicked) {
+                                controls_selection = act_idx;
+                                if (mouse_x >= c_box_x + 125 && mouse_x <= c_box_x + c_box_w - 2) {
+                                    rebinding_action = act_idx;
+                                    PlaySfx(sndPowerUp);
+                                }
                             }
                         }
-                        rebinding_action = -1;
+                    }
+
+                    if (m_accept && rebinding_action == -1) {
+                        rebinding_action = controls_selection;
+                        PlaySfx(sndPowerUp);
+                    }
+
+                    if (m_back && rebinding_action == -1) {
                         just_entered_menu = true;
+                        state = controls_origin_state;
                     }
-                }
-            } else {
-                if (m_up)   controls_selection = (controls_selection - 1 + 8) % 8;
-                if (m_down) controls_selection = (controls_selection + 1) % 8;
-
-                int c_box_w = 210;
-                int c_box_x = (SCREEN_W - c_box_w) / 2;
-                int c_box_y = 42;
-                for (int act_idx = 0; act_idx < 8; act_idx++) {
-                    int row_y = c_box_y + 4 + (act_idx * 11);
-                    if (mouse_x >= c_box_x && mouse_x <= c_box_x + c_box_w && mouse_y >= row_y - 2 && mouse_y <= row_y + 9) {
-                        if (mouse_moved) controls_selection = act_idx;
-                        if (mouse_clicked) {
-                            controls_selection = act_idx;
-                            if (mouse_x >= c_box_x + 125 && mouse_x <= c_box_x + c_box_w - 2) {
-                                rebinding_action = act_idx;
-                                PlaySfx(sndPowerUp);
-                            }
-                        }
-                    }
-                }
-
-                if (m_accept && rebinding_action == -1) {
-                    rebinding_action = controls_selection;
-                    PlaySfx(sndPowerUp);
-                }
-
-                if (m_back && rebinding_action == -1) {
-                    just_entered_menu = true;
-                    state = controls_origin_state;
                 }
             }
         }
@@ -5753,86 +5728,153 @@ static void GameUpdate(void) {
             }
         }
         else if (state == 4) {
-            DrawMenuSpaceFramePC(C_CTRL_BG, T(STR_CTRL_TITLE), GBA_COLOR(0, 31, 10), GBA_COLOR(0, 10, 4), GBA_COLOR(0, 26, 10));
-            DrawNebulaBackgroundPC(SCREEN_W, SCREEN_H, frame_count);
-            for(int m = 0; m < MAX_MENU_STARS; m++) {
-                int my = (int)roundf((float)menu_stars[m].y + (float)menu_stars[m].vy * (1.0f - alpha_interp));
-                if (my > SCREEN_H - 4) my -= (SCREEN_H - 6);
-                DrawRectangle(menu_stars[m].x, my, 1, 1, menu_stars[m].color);
-            }
-
-            int c_box_w = 210;
-            int c_box_x = (SCREEN_W - c_box_w) / 2;
-            int c_box_y = 42;
-            int c_box_h = 92;
-            DrawBevelledBoxPC(c_box_x, c_box_y, c_box_w, c_box_h, GBA_COLOR(1, 4, 3), GBA_COLOR(0, 26, 12), true);
-            DrawRectangle(c_box_x + 3, c_box_y + 3, 1, 1, C_CYAN);
-            DrawRectangle(c_box_x + c_box_w - 4, c_box_y + 3, 1, 1, C_CYAN);
-            DrawRectangle(c_box_x + 3, c_box_y + c_box_h - 4, 1, 1, C_CYAN);
-            DrawRectangle(c_box_x + c_box_w - 4, c_box_y + c_box_h - 4, 1, 1, C_CYAN);
-
-            const char* action_labels[8] = {
-                T(STR_CTRL_UP), T(STR_CTRL_DOWN), T(STR_CTRL_LEFT), T(STR_CTRL_RIGHT),
-                T(STR_CTRL_SHOOT), T(STR_CTRL_TURBO), T(STR_CTRL_AIM), T(STR_CTRL_DASH)
-            };
-            int action_keys[8] = {
-                g_keys.key_up, g_keys.key_down, g_keys.key_left, g_keys.key_right,
-                g_keys.key_shoot, g_keys.key_turbo, g_keys.key_aim, g_keys.key_dash
-            };
-            int action_pads[8] = {
-                g_pad.btn_up, g_pad.btn_down, g_pad.btn_left, g_pad.btn_right,
-                g_pad.btn_shoot, g_pad.btn_turbo, g_pad.btn_aim, g_pad.btn_dash
-            };
-
-            for (int act_idx = 0; act_idx < 8; act_idx++) {
-                int row_y = c_box_y + 4 + (act_idx * 11);
-                bool is_sel = (controls_selection == act_idx);
-
-                int row_w = 206;
-                int row_x = c_box_x + 2;
-                if (is_sel) {
-                    DrawBevelledBoxPC(row_x, row_y - 2, row_w, 10, GBA_COLOR(2, 8, 16), C_CYAN, true);
+            if (g_last_input_device != INPUT_GAMEPAD) {
+                DrawMenuSpaceFramePC(C_CTRL_BG, T(STR_CONTROLS), GBA_COLOR(0, 31, 10), GBA_COLOR(0, 10, 4), GBA_COLOR(0, 26, 10));
+                DrawNebulaBackgroundPC(SCREEN_W, SCREEN_H, frame_count);
+                for(int m = 0; m < MAX_MENU_STARS; m++) {
+                    int my = (int)roundf((float)menu_stars[m].y + (float)menu_stars[m].vy * (1.0f - alpha_interp));
+                    if (my > SCREEN_H - 4) my -= (SCREEN_H - 6);
+                    DrawRectangle(menu_stars[m].x, my, 1, 1, menu_stars[m].color);
                 }
 
-                DrawActionIcon16Bit(act_idx, c_box_x + 5, row_y - 1, is_sel);
-                DrawStringCustom(action_labels[act_idx], c_box_x + 17, row_y, is_sel ? C_YELLOW : WHITE, 1);
-                
-                if (g_last_input_device == INPUT_GAMEPAD) {
+                // Chasis exterior del teléfono móvil en horizontal
+                DrawRectangle(22, 38, 196, 98, GBA_COLOR(2, 4, 8));
+                DrawRectangleLines(22, 38, 196, 98, GBA_COLOR(0, 26, 31));
+                // Pantalla interior
+                DrawRectangle(34, 42, 172, 90, GBA_COLOR(1, 2, 5));
+                DrawRectangleLines(34, 42, 172, 90, GBA_COLOR(0, 16, 22));
+
+                // Cámara frontal (izq) y altavoz (der)
+                DrawCircle(28, 87, 2, GBA_COLOR(8, 12, 16));
+                DrawRectangle(212, 81, 2, 12, GBA_COLOR(8, 12, 16));
+
+                // --- LADO IZQUIERDO: JOYSTICK VIRTUAL FLOTANTE (ESTILO RETRO 16-BIT) ---
+                DrawRectangle(44, 62, 38, 38, GBA_COLOR(1, 4, 10));
+                DrawRectangleLines(44, 62, 38, 38, GBA_COLOR(0, 24, 31));
+                // Flechas cardinales
+                DrawRectangle(61, 64, 4, 3, WHITE);
+                DrawRectangle(61, 95, 4, 3, WHITE);
+                DrawRectangle(46, 79, 3, 4, WHITE);
+                DrawRectangle(77, 79, 3, 4, WHITE);
+                // Pomo central
+                DrawRectangle(55, 73, 16, 16, C_CYAN);
+                DrawRectangleLines(55, 73, 16, 16, WHITE);
+                DrawRectangle(60, 78, 6, 6, WHITE);
+                int move_w = MeasureStringCustom(T(STR_CTRL_MOVE), 1);
+                DrawStringCustom(T(STR_CTRL_MOVE), 63 - (move_w / 2), 108, C_CYAN, 1);
+
+                // --- LADO DERECHO: BOTONES TÁCTILES RETRO (NUEVA DISTRIBUCIÓN) ---
+                // Botón Pausa [II] (esquina superior derecha de la pantalla interior)
+                DrawRectangle(188, 46, 12, 10, GBA_COLOR(4, 8, 12));
+                DrawRectangleLines(188, 46, 12, 10, C_CYAN);
+                DrawRectangle(189, 47, 10, 1, (Color){ 255, 255, 255, 100 });
+                DrawStringCustom("II", 192, 48, WHITE, 1);
+                int p_w = MeasureStringCustom(T(STR_PAUSE), 1);
+                DrawStringCustom(T(STR_PAUSE), 184 - p_w, 48, GBA_COLOR(18, 22, 26), 1);
+
+                // Botón Dash [D] (Verde esmeralda, posición superior izquierda)
+                DrawRectangle(138, 66, 14, 14, GBA_COLOR(2, 18, 8));
+                DrawRectangleLines(138, 66, 14, 14, C_GREEN);
+                DrawRectangle(139, 67, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("D", 143, 70, C_GREEN, 1);
+                int d_w = MeasureStringCustom(T(STR_CTRL_DASH), 1);
+                DrawStringCustom(T(STR_CTRL_DASH), 134 - d_w, 70, C_GREEN, 1);
+
+                // Botón Turbo [T] (Azul / Cian, posición inferior izquierda)
+                DrawRectangle(138, 96, 14, 14, GBA_COLOR(2, 10, 26));
+                DrawRectangleLines(138, 96, 14, 14, C_CYAN);
+                DrawRectangle(139, 97, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("T", 143, 100, C_CYAN, 1);
+                int t_w = MeasureStringCustom(T(STR_CTRL_TURBO), 1);
+                DrawStringCustom(T(STR_CTRL_TURBO), 134 - t_w, 100, C_CYAN, 1);
+
+                // Botón Aim Lock [L] (Dorado / Amarillo, posición superior derecha)
+                DrawRectangle(186, 66, 14, 14, GBA_COLOR(24, 18, 2));
+                DrawRectangleLines(186, 66, 14, 14, C_YELLOW);
+                DrawRectangle(187, 67, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("L", 191, 70, C_YELLOW, 1);
+                int l_w = MeasureStringCustom(T(STR_CTRL_AIM), 1);
+                DrawStringCustom(T(STR_CTRL_AIM), 193 - (l_w / 2), 82, C_YELLOW, 1);
+
+                // Botón Disparo [A] (Rojo carmesí, botón principal a la derecha)
+                DrawRectangle(185, 95, 16, 16, GBA_COLOR(26, 4, 4));
+                DrawRectangleLines(185, 95, 16, 16, GBA_COLOR(31, 14, 14));
+                DrawRectangle(186, 96, 14, 1, (Color){ 255, 255, 255, 140 });
+                DrawStringCustom("A", 190, 100, WHITE, 1);
+                int a_w = MeasureStringCustom(T(STR_CTRL_SHOOT), 1);
+                DrawStringCustom(T(STR_CTRL_SHOOT), 193 - (a_w / 2), 113, GBA_COLOR(31, 14, 14), 1);
+            } else {
+                DrawMenuSpaceFramePC(C_CTRL_BG, T(STR_CTRL_TITLE), GBA_COLOR(0, 31, 10), GBA_COLOR(0, 10, 4), GBA_COLOR(0, 26, 10));
+                DrawNebulaBackgroundPC(SCREEN_W, SCREEN_H, frame_count);
+                for(int m = 0; m < MAX_MENU_STARS; m++) {
+                    int my = (int)roundf((float)menu_stars[m].y + (float)menu_stars[m].vy * (1.0f - alpha_interp));
+                    if (my > SCREEN_H - 4) my -= (SCREEN_H - 6);
+                    DrawRectangle(menu_stars[m].x, my, 1, 1, menu_stars[m].color);
+                }
+
+                int c_box_w = 210;
+                int c_box_x = (SCREEN_W - c_box_w) / 2;
+                int c_box_y = 42;
+                int c_box_h = 92;
+                DrawBevelledBoxPC(c_box_x, c_box_y, c_box_w, c_box_h, GBA_COLOR(1, 4, 3), GBA_COLOR(0, 26, 12), true);
+                DrawRectangle(c_box_x + 3, c_box_y + 3, 1, 1, C_CYAN);
+                DrawRectangle(c_box_x + c_box_w - 4, c_box_y + 3, 1, 1, C_CYAN);
+                DrawRectangle(c_box_x + 3, c_box_y + c_box_h - 4, 1, 1, C_CYAN);
+                DrawRectangle(c_box_x + c_box_w - 4, c_box_y + c_box_h - 4, 1, 1, C_CYAN);
+
+                const char* action_labels[8] = {
+                    T(STR_CTRL_UP), T(STR_CTRL_DOWN), T(STR_CTRL_LEFT), T(STR_CTRL_RIGHT),
+                    T(STR_CTRL_SHOOT), T(STR_CTRL_TURBO), T(STR_CTRL_AIM), T(STR_CTRL_DASH)
+                };
+                int action_pads[8] = {
+                    g_pad.btn_up, g_pad.btn_down, g_pad.btn_left, g_pad.btn_right,
+                    g_pad.btn_shoot, g_pad.btn_turbo, g_pad.btn_aim, g_pad.btn_dash
+                };
+
+                for (int act_idx = 0; act_idx < 8; act_idx++) {
+                    int row_y = c_box_y + 4 + (act_idx * 11);
+                    bool is_sel = (controls_selection == act_idx);
+
+                    int row_w = 206;
+                    int row_x = c_box_x + 2;
+                    if (is_sel) {
+                        DrawBevelledBoxPC(row_x, row_y - 2, row_w, 10, GBA_COLOR(2, 8, 16), C_CYAN, true);
+                    }
+
+                    DrawActionIcon16Bit(act_idx, c_box_x + 5, row_y - 1, is_sel);
+                    DrawStringCustom(action_labels[act_idx], c_box_x + 17, row_y, is_sel ? C_YELLOW : WHITE, 1);
+                    
                     const char* bind_name = GetGamepadButtonNameCustom(action_pads[act_idx]);
                     Color btn_col = is_sel ? C_YELLOW : GetGamepadButtonColorCustom(action_pads[act_idx]);
                     DrawStringCustom(bind_name, c_box_x + 135, row_y, btn_col, 1);
                     DrawGamepadIcon16Bit(c_box_x + 187, row_y - 2, is_sel);
-                } else {
-                    const char* bind_name = GetKeyNameCustom(action_keys[act_idx]);
-                    DrawStringCustom(bind_name, c_box_x + 135, row_y, is_sel ? C_YELLOW : GBA_COLOR(0, 31, 31), 1);
-                    DrawKeyboardIcon16Bit(c_box_x + 187, row_y - 2, is_sel);
                 }
-            }
 
-            if (rebinding_action != -1) {
-                int r_pop_w = 210;
-                int r_pop_x = (SCREEN_W - r_pop_w) / 2;
-                int r_pop_y = (SCREEN_H - 70) / 2;
-                DrawBevelledBoxPC(r_pop_x, r_pop_y, r_pop_w, 70, GBA_COLOR(2, 3, 6), C_YELLOW, true);
-                DrawRectangle(r_pop_x + 3, r_pop_y + 3, 1, 1, C_YELLOW);
-                DrawRectangle(r_pop_x + r_pop_w - 4, r_pop_y + 3, 1, 1, C_YELLOW);
-                DrawRectangle(r_pop_x + 3, r_pop_y + 66, 1, 1, C_YELLOW);
-                DrawRectangle(r_pop_x + r_pop_w - 4, r_pop_y + 66, 1, 1, C_YELLOW);
+                if (rebinding_action != -1) {
+                    int r_pop_w = 210;
+                    int r_pop_x = (SCREEN_W - r_pop_w) / 2;
+                    int r_pop_y = (SCREEN_H - 70) / 2;
+                    DrawBevelledBoxPC(r_pop_x, r_pop_y, r_pop_w, 70, GBA_COLOR(2, 3, 6), C_YELLOW, true);
+                    DrawRectangle(r_pop_x + 3, r_pop_y + 3, 1, 1, C_YELLOW);
+                    DrawRectangle(r_pop_x + r_pop_w - 4, r_pop_y + 3, 1, 1, C_YELLOW);
+                    DrawRectangle(r_pop_x + 3, r_pop_y + 66, 1, 1, C_YELLOW);
+                    DrawRectangle(r_pop_x + r_pop_w - 4, r_pop_y + 66, 1, 1, C_YELLOW);
 
-                DrawCenteredStringCustom(T(STR_REBIND_TITLE), r_pop_y + 9, C_YELLOW, 1);
-                DrawCenteredStringCustom(action_labels[rebinding_action], r_pop_y + 23, C_CYAN, 1);
-                DrawCenteredStringCustom(T(STR_PRESS_KEY), r_pop_y + 37, WHITE, 1);
-                DrawCenteredStringCustom(T(STR_CANCEL_KEY), r_pop_y + 51, GBA_COLOR(18, 18, 18), 1);
-            }
+                    DrawCenteredStringCustom(T(STR_REBIND_TITLE), r_pop_y + 9, C_YELLOW, 1);
+                    DrawCenteredStringCustom(action_labels[rebinding_action], r_pop_y + 23, C_CYAN, 1);
+                    DrawCenteredStringCustom(T(STR_PRESS_KEY), r_pop_y + 37, WHITE, 1);
+                    DrawCenteredStringCustom(T(STR_CANCEL_KEY), r_pop_y + 51, GBA_COLOR(18, 18, 18), 1);
+                }
 
-            if (duplicate_key_warning > 0) {
-                int d_pop_w = 180;
-                int d_pop_x = (SCREEN_W - d_pop_w) / 2;
-                int d_pop_y = (SCREEN_H - 64) / 2;
-                DrawBevelledBoxPC(d_pop_x, d_pop_y, d_pop_w, 64, GBA_COLOR(4, 2, 8), GBA_COLOR(31, 2, 2), true);
-                DrawCenteredStringCustom(T(STR_INVALID_ACTION), d_pop_y + 8, GBA_COLOR(31, 6, 6), 1);
-                DrawCenteredStringCustom(T(STR_DUPLICATE_KEY), d_pop_y + 24, C_YELLOW, 1);
-                DrawCenteredStringCustom(T(STR_USE_OTHER_KEY), d_pop_y + 40, WHITE, 1);
+                if (duplicate_key_warning > 0) {
+                    int d_pop_w = 180;
+                    int d_pop_x = (SCREEN_W - d_pop_w) / 2;
+                    int d_pop_y = (SCREEN_H - 64) / 2;
+                    DrawBevelledBoxPC(d_pop_x, d_pop_y, d_pop_w, 64, GBA_COLOR(4, 2, 8), GBA_COLOR(31, 2, 2), true);
+                    DrawCenteredStringCustom(T(STR_INVALID_ACTION), d_pop_y + 8, GBA_COLOR(31, 6, 6), 1);
+                    DrawCenteredStringCustom(T(STR_DUPLICATE_KEY), d_pop_y + 24, C_YELLOW, 1);
+                    DrawCenteredStringCustom(T(STR_USE_OTHER_KEY), d_pop_y + 40, WHITE, 1);
+                }
             }
         }
         else if (state == 8) {

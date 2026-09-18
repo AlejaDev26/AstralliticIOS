@@ -132,13 +132,13 @@ int IOS_GetMaxRefreshRate(void) {
 void IOS_SetDisplayFPS(int fps) {
     if (!s_ios_display_link) return;
     int max_fps = IOS_GetMaxRefreshRate();
+    if (max_fps < 60) max_fps = 60;
     if (fps <= 0) fps = max_fps;
     if (fps > max_fps) fps = max_fps;
 
     if (@available(iOS 15.0, *)) {
         float f = (float)fps;
-        float min_f = (f >= 60.0f) ? 60.0f : f;
-        s_ios_display_link.preferredFrameRateRange = CAFrameRateRangeMake(min_f, (float)max_fps, f);
+        s_ios_display_link.preferredFrameRateRange = CAFrameRateRangeMake(f, f, f);
     } else {
         s_ios_display_link.preferredFramesPerSecond = fps;
     }
