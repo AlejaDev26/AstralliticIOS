@@ -117,20 +117,57 @@ def patch_raylib():
         width = height;
         height = tmp;
     }"""
+        # Anadir funciones de control dinamico de FPS y deteccion de pantalla
+        fps_func_target = "- (bool)prefersStatusBarHidden {"
+        fps_func_replacement = """static CADisplayLink *s_ios_display_link = nil;
+
+int IOS_GetMaxRefreshRate(void) {
+    if (@available(iOS 10.3, *)) {
+        NSInteger maxFps = [UIScreen mainScreen].maximumFramesPerSecond;
+        if (maxFps > 0) return (int)maxFps;
+    }
+    return 60;
+}
+
+void IOS_SetDisplayFPS(int fps) {
+    if (!s_ios_display_link) return;
+    int max_fps = IOS_GetMaxRefreshRate();
+    if (fps <= 0) fps = max_fps;
+    if (fps > max_fps) fps = max_fps;
+
+    if (@available(iOS 15.0, *)) {
+        float f = (float)fps;
+        float min_f = (f >= 60.0f) ? 60.0f : f;
+        s_ios_display_link.preferredFrameRateRange = CAFrameRateRangeMake(min_f, (float)max_fps, f);
+    } else {
+        s_ios_display_link.preferredFramesPerSecond = fps;
+    }
+}
+
+- (bool)prefersStatusBarHidden {"""
+        if fps_func_target in content and "s_ios_display_link" not in content:
+            content = content.replace(fps_func_target, fps_func_replacement)
+
         # Configurar CADisplayLink para soportar ProMotion 120Hz nativo en iPhone
         dlink_target = "[displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];"
-        dlink_replacement = """if (@available(iOS 15.0, *)) {
+        dlink_replacement = """s_ios_display_link = displayLink;
+    [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    IOS_SetDisplayFPS(120);"""
+        if "s_ios_display_link = displayLink;" not in content:
+            old_block = """if (@available(iOS 15.0, *)) {
         displayLink.preferredFrameRateRange = CAFrameRateRangeMake(30.0, 120.0, 120.0);
     } else {
         displayLink.preferredFramesPerSecond = 120;
     }
     [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];"""
-        if dlink_target in content:
-            content = content.replace(dlink_target, dlink_replacement)
+            if old_block in content:
+                content = content.replace(old_block, dlink_replacement)
+            elif dlink_target in content:
+                content = content.replace(dlink_target, dlink_replacement)
 
         with open(rcore_ios_path, "w", encoding="utf-8") as f:
             f.write(content)
-        print(f"[patch] Correctamente parcheado rcore_ios.c para orientacion horizontal y ProMotion 120Hz.")
+        print(f"[patch] Correctamente parcheado rcore_ios.c para orientacion horizontal y control dinamico de FPS/ProMotion.")
 
 if __name__ == "__main__":
     patch_raylib()

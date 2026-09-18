@@ -18,6 +18,8 @@
 #define IsGamepadButtonDown(pad, btn) IOSGamepad_IsButtonDown(pad, btn)
 #define IsGamepadButtonPressed(pad, btn) IOSGamepad_IsButtonPressed(pad, btn)
 #define IsGamepadButtonReleased(pad, btn) IOSGamepad_IsButtonReleased(pad, btn)
+extern int IOS_GetMaxRefreshRate(void);
+extern void IOS_SetDisplayFPS(int fps);
 #endif
 
 InputDeviceType g_last_input_device = INPUT_KEYBOARD;
@@ -1401,10 +1403,27 @@ static void AdaptStarsOnResolutionChange(void) {
     InitBloodDrops();
 }
 
+static const char* GetFpsOptionText(int fps_idx) {
+    int max_hz = 60;
+#if defined(PLATFORM_IOS)
+    max_hz = IOS_GetMaxRefreshRate();
+#endif
+    if (fps_idx == 0) return "30 FPS";
+    if (fps_idx == 1) return "60 FPS";
+    if (fps_idx == 2) {
+        return (max_hz >= 120) ? "120 FPS" : "120 FPS (60Hz)";
+    }
+    return "60 FPS";
+}
+
 void ApplyFpsSetting(void) {
     int fps_values[FPS_OPTION_COUNT] = { 30, 60, 120 };
     if (g_config.target_fps < 0 || g_config.target_fps >= FPS_OPTION_COUNT) g_config.target_fps = 1;
-    SetTargetFPS(fps_values[g_config.target_fps]);
+    int target_fps = fps_values[g_config.target_fps];
+    SetTargetFPS(target_fps);
+#if defined(PLATFORM_IOS)
+    IOS_SetDisplayFPS(target_fps);
+#endif
 }
 
 void ApplyVSyncSetting(void) {
@@ -2912,8 +2931,6 @@ static void GameUpdate(void) {
             if (options_selection < options_scroll_offset) options_scroll_offset = options_selection;
             if (options_selection >= options_scroll_offset + 3) options_scroll_offset = options_selection - 2;
 
-            const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
-
             char opt_strings[8][64];
             snprintf(opt_strings[0], sizeof(opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], sizeof(opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
@@ -2921,7 +2938,7 @@ static void GameUpdate(void) {
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
             snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
             snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
 
             int row_w = 175;
@@ -3041,15 +3058,13 @@ static void GameUpdate(void) {
             if (pause_options_selection < pause_options_scroll_offset) pause_options_scroll_offset = pause_options_selection;
             if (pause_options_selection >= pause_options_scroll_offset + 3) pause_options_scroll_offset = pause_options_selection - 2;
 
-            const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
-
             char pause_opt_strings[6][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
 
             int p_row_w = 175;
             int p_row_x = 25;
@@ -5548,8 +5563,6 @@ static void GameUpdate(void) {
             if (opt_top < 15) opt_top = 15;
             int opt_start_y = opt_top + 37;
 
-            const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
-
             char opt_strings[8][64];
             snprintf(opt_strings[0], sizeof(opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(opt_strings[1], sizeof(opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
@@ -5557,7 +5570,7 @@ static void GameUpdate(void) {
             snprintf(opt_strings[3], sizeof(opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(opt_strings[4], sizeof(opt_strings[4]), "%s: < %s >", T(STR_LANGUAGE), g_lang_names[g_config.language]);
             snprintf(opt_strings[5], sizeof(opt_strings[5]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
             snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
 
             int opt_icons[8] = {
@@ -5633,15 +5646,13 @@ static void GameUpdate(void) {
             DrawHeaderCenteredStringCustom(T(STR_OPTIONS), header_y, C_CYAN, GBA_COLOR(0, 10, 18), 2);
             DrawRectangle((SCREEN_W - 184) / 2, header_y + 31, 184, 1, GBA_COLOR(0, 24, 31));
 
-            const char* fps_txt[FPS_OPTION_COUNT] = { "30 FPS", "60 FPS", "120 FPS" };
-
             char pause_opt_strings[6][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
             snprintf(pause_opt_strings[1], sizeof(pause_opt_strings[1]), "%s: < %d%% >", T(STR_VOL_SFX), g_config.vol_sfx * 10);
             snprintf(pause_opt_strings[2], sizeof(pause_opt_strings[2]), "%s: < %s >", T(STR_FILTER), GetFilterName(g_config.crt_filter, g_config.language));
             snprintf(pause_opt_strings[3], sizeof(pause_opt_strings[3]), "%s", T(STR_CONTROLS));
             snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), g_screen_mode_names[g_config.screen_mode]);
-            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), fps_txt[g_config.target_fps]);
+            snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
 
             int p_icons[6] = {
                 MENU_ICON_AUDIO, MENU_ICON_AUDIO, MENU_ICON_VIDEO, MENU_ICON_CONTROLS,
