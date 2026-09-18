@@ -68,9 +68,132 @@ const char* PlatformIOSGetAssetPath(const char *filename)
 }
 
 #import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
 
-void PlatformIOSShowSecretCodeDialog(void (*on_submit)(const char* code))
+@interface AstralliticAudioSessionManager : NSObject
++ (instancetype)sharedInstance;
+- (void)setupAudioSession;
+@end
+
+@implementation AstralliticAudioSessionManager
+
++ (instancetype)sharedInstance {
+    static AstralliticAudioSessionManager *instance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        instance = [[AstralliticAudioSessionManager alloc] init];
+    });
+    return instance;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(handleRouteChange:)
+                                                     name:AVAudioSessionRouteChangeNotification
+                                                   object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(handleInterruption:)
+                                                     name:AVAudioSessionInterruptionNotification
+                                                   object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(handleAppDidBecomeActive:)
+                                                     name:UIApplicationDidBecomeActiveNotification
+                                                   object:nil];
+    }
+    return self;
+}
+
+- (void)setupAudioSession {
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    NSError *error = nil;
+
+    // AVAudioSessionCategoryPlayback ensures:
+    // 1. Audio is NOT muted by the hardware silent/vibrate switch or focus modes.
+    // 2. Audio routes automatically to connected Bluetooth devices (AirPods, Bluetooth headsets, and Ray-Ban Meta glasses).
+    AVAudioSessionCategoryOptions options = AVAudioSessionCategoryOptionMixWithOthers;
+    if (@available(iOS 10.0, *)) {
+        options |= AVAudioSessionCategoryOptionAllowBluetoothA2DP | AVAudioSessionCategoryOptionAllowAirPlay;
+    }
+
+    if (@available(iOS 10.0, *)) {
+        [session setCategory:AVAudioSessionCategoryPlayback
+                        mode:AVAudioSessionModeDefault
+                     options:options
+                       error:&error];
+    } else {
+        [session setCategory:AVAudioSessionCategoryPlayback
+                 withOptions:options
+                       error:&error];
+    }
+
+    if (error) {
+        NSLog(@"[Astrallitic Audio] Warning setting audio category with options: %@", error.localizedDescription);
+        error = nil;
+        [session setCategory:AVAudioSessionCategoryPlayback error:&error];
+        if (error) {
+            NSLog(@"[Astrallitic Audio] Error setting fallback audio category: %@", error.localizedDescription);
+        }
+    }
+
+    // Set preferred low latency buffer and sample rate
+    [session setPreferredIOBufferDuration:0.005 error:nil];
+    [session setPreferredSampleRate:44100.0 error:nil];
+
+    [session setActive:YES error:&error];
+    if (error) {
+        NSLog(@"[Astrallitic Audio] Error activating audio session: %@", error.localizedDescription);
+    } else {
+        NSLog(@"[Astrallitic Audio] Audio session configured and active (Playback + Bluetooth/AirPlay/Mix).");
+    }
+}
+
+- (void)handleRouteChange:(NSNotification *)notification {
+    NSDictionary *userInfo = notification.userInfo;
+    NSNumber *reasonNum = userInfo[AVAudioSessionRouteChangeReasonKey];
+    AVAudioSessionRouteChangeReason reason = (AVAudioSessionRouteChangeReason)[reasonNum unsignedIntegerValue];
+    NSLog(@"[Astrallitic Audio] Route changed (reason: %lu). Re-activating session...", (unsigned long)reason);
+    NSError *error = nil;
+    [[AVAudioSession sharedInstance] setActive:YES error:&error];
+}
+
+- (void)handleInterruption:(NSNotification *)notification {
+    NSDictionary *userInfo = notification.userInfo;
+    NSNumber *typeNum = userInfo[AVAudioSessionInterruptionTypeKey];
+    AVAudioSessionInterruptionType type = (AVAudioSessionInterruptionType)[typeNum unsignedIntegerValue];
+    if (type == AVAudioSessionInterruptionTypeEnded) {
+        NSNumber *optNum = userInfo[AVAudioSessionInterruptionOptionKey];
+        AVAudioSessionInterruptionOptions options = (AVAudioSessionInterruptionOptions)[optNum unsignedIntegerValue];
+        if (options & AVAudioSessionInterruptionOptionShouldResume) {
+            NSLog(@"[Astrallitic Audio] Interruption ended. Resuming audio session...");
+            NSError *error = nil;
+            [[AVAudioSession sharedInstance] setActive:YES error:&error];
+        }
+    }
+}
+
+- (void)handleAppDidBecomeActive:(NSNotification *)notification {
+    NSLog(@"[Astrallitic Audio] App became active. Verifying audio session...");
+    NSError *error = nil;
+    [[AVAudioSession sharedInstance] setActive:YES error:&error];
+}
+
+@end
+
+void PlatformIOSSetupAudioSession(void)
 {
+    [[AstralliticAudioSessionManager sharedInstance] setupAudioSession];
+}
+
+void PlatformIOSShowSecretCodeDialog(const char* title, const char* message, const char* placeholder, const char* cancel_btn, const char* submit_btn, void (*on_submit)(const char* code))
+{
+    NSString *nsTitle = (title && title[0]) ? [NSString stringWithUTF8String:title] : @"CÓDIGO SECRETO";
+    NSString *nsMessage = (message && message[0]) ? [NSString stringWithUTF8String:message] : @"Introduce tu código secreto:";
+    NSString *nsPlaceholder = (placeholder && placeholder[0]) ? [NSString stringWithUTF8String:placeholder] : @"CÓDIGO";
+    NSString *nsCancel = (cancel_btn && cancel_btn[0]) ? [NSString stringWithUTF8String:cancel_btn] : @"Cancelar";
+    NSString *nsSubmit = (submit_btn && submit_btn[0]) ? [NSString stringWithUTF8String:submit_btn] : @"Canjear";
+
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *keyWindow = nil;
         if (@available(iOS 13.0, *)) {
@@ -97,19 +220,19 @@ void PlatformIOSShowSecretCodeDialog(void (*on_submit)(const char* code))
         }
         if (!rootVC) return;
 
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"CÓDIGO SECRETO"
-                                                                       message:@"Introduce tu código secreto:"
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:nsTitle
+                                                                       message:nsMessage
                                                                 preferredStyle:UIAlertControllerStyleAlert];
 
         [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
-            textField.placeholder = @"CÓDIGO";
+            textField.placeholder = nsPlaceholder;
             textField.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
             textField.autocorrectionType = UITextAutocorrectionTypeNo;
             textField.returnKeyType = UIReturnKeyDone;
         }];
 
-        [alert addAction:[UIAlertAction actionWithTitle:@"Cancelar" style:UIAlertActionStyleCancel handler:nil]];
-        [alert addAction:[UIAlertAction actionWithTitle:@"Canjear" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        [alert addAction:[UIAlertAction actionWithTitle:nsCancel style:UIAlertActionStyleCancel handler:nil]];
+        [alert addAction:[UIAlertAction actionWithTitle:nsSubmit style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
             UITextField *tf = alert.textFields.firstObject;
             if (tf && tf.text && on_submit) {
                 on_submit([tf.text UTF8String]);
@@ -119,4 +242,5 @@ void PlatformIOSShowSecretCodeDialog(void (*on_submit)(const char* code))
         [rootVC presentViewController:alert animated:YES completion:nil];
     });
 }
+
 

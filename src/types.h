@@ -251,6 +251,7 @@ typedef enum {
     STR_ACH_PROGRESS_LBL,
     STR_CTRL_MOVE,
     STR_TOUCH_INFO_TITLE,
+    STR_OPEN_KEYBOARD,
     STR_COUNT
 } StringId;
 

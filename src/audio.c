@@ -154,6 +154,7 @@ void TryLoadRawMusic(int index, const char* filename) {
 }
 
 void InitGameAudio() {
+    IOS_SetupAudioSession();
     InitAudioDevice();
     SetMasterVolume(1.0f);
 
