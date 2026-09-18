@@ -1,0 +1,4 @@
+Astrallitic - copia/
+build/
+*.o
+.DS_Store

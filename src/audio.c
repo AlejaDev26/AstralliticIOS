@@ -23,6 +23,12 @@ static const float readyJingleFreqs[READY_JINGLE_TONE_COUNT] = {
     659.2f, 783.9f, 880.0f, 1046.5f
 };
 
+static Sound waveJingleTones[WAVE_JINGLE_TONE_COUNT] = {0};
+static bool waveJingleLoaded[WAVE_JINGLE_TONE_COUNT] = {0};
+static const float waveJingleFreqs[WAVE_JINGLE_TONE_COUNT] = {
+    261.6f, 329.6f, 392.0f, 523.2f, 659.2f, 783.9f, 1046.5f
+};
+
 void ApplyAudioVolumes() {
     float bgm_vol = (float)g_config.vol_bgm / 10.0f;
     float sfx_vol = (float)g_config.vol_sfx / 10.0f;
@@ -90,6 +96,29 @@ void UpdateReadyJinglePC(int timer) {
         int step = (60 - timer) / 6;
         if ((60 - timer) % 6 == 0 && step >= 0 && step < 8) PlayReadyToneIndex(8 + step);
     }
+}
+
+static void PlayWaveToneIndex(int index) {
+    if (g_config.vol_sfx == 0) return;
+    if (index < 0 || index >= WAVE_JINGLE_TONE_COUNT) return;
+    if (!waveJingleLoaded[index]) return;
+
+    SetSoundVolume(
+        waveJingleTones[index],
+        ((float)g_config.vol_sfx / 10.0f) * 0.85f
+    );
+    PlaySound(waveJingleTones[index]);
+}
+
+void UpdateWaveJinglePC(int timer) {
+    if (g_config.vol_sfx == 0) return;
+    if (timer == 88) PlayWaveToneIndex(0); // C4
+    else if (timer == 76) PlayWaveToneIndex(1); // E4
+    else if (timer == 64) PlayWaveToneIndex(2); // G4
+    else if (timer == 52) PlayWaveToneIndex(3); // C5
+    else if (timer == 40) PlayWaveToneIndex(4); // E5
+    else if (timer == 28) PlayWaveToneIndex(5); // G5
+    else if (timer == 16) PlayWaveToneIndex(6); // C6
 }
 
 void TryLoadRawMusic(int index, const char* filename) {
@@ -291,6 +320,14 @@ void InitGameAudio() {
         readyJingleLoaded[i] = IsSoundValid(readyJingleTones[i]);
     }
 
+    for (int i = 0; i < WAVE_JINGLE_TONE_COUNT; i++) {
+        if (waveJingleLoaded[i] && IsSoundValid(waveJingleTones[i])) {
+            UnloadSound(waveJingleTones[i]);
+        }
+        waveJingleTones[i] = GenerateTone(waveJingleFreqs[i], 0.22f, 0);
+        waveJingleLoaded[i] = IsSoundValid(waveJingleTones[i]);
+    }
+
     ApplyAudioVolumes();
 }
 
@@ -314,6 +351,12 @@ void UnloadGameAudio(void) {
         if (readyJingleLoaded[i] && IsSoundValid(readyJingleTones[i])) {
             UnloadSound(readyJingleTones[i]);
             readyJingleLoaded[i] = false;
+        }
+    }
+    for (int i = 0; i < WAVE_JINGLE_TONE_COUNT; i++) {
+        if (waveJingleLoaded[i] && IsSoundValid(waveJingleTones[i])) {
+            UnloadSound(waveJingleTones[i]);
+            waveJingleLoaded[i] = false;
         }
     }
 }
@@ -393,6 +436,15 @@ float GetTitleBgmSnap() {
     return g_title_glitch_snap;
 }
 
+extern bool g_cheat_pewpew_active;
+
 void PlaySfx(Sound s) {
-    if (g_config.vol_sfx > 0) PlaySound(s);
+    if (g_config.vol_sfx > 0) {
+        if (g_cheat_pewpew_active) {
+            SetSoundPitch(s, 1.8f);
+        } else {
+            SetSoundPitch(s, 1.0f);
+        }
+        PlaySound(s);
+    }
 }

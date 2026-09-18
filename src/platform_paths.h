@@ -7,6 +7,7 @@ extern "C" {
 
 const char* PlatformGetDataPath(const char *filename);
 const char* PlatformGetAssetPath(const char *filename);
+void IOS_ShowSecretCodeDialog(void (*on_submit)(const char* code));
 
 #ifdef __cplusplus
 }

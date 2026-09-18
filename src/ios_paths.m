@@ -66,3 +66,57 @@ const char* PlatformIOSGetAssetPath(const char *filename)
 
     return CopyNSStringToStatic(full);
 }
+
+#import <UIKit/UIKit.h>
+
+void PlatformIOSShowSecretCodeDialog(void (*on_submit)(const char* code))
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *keyWindow = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+                    for (UIWindow *w in scene.windows) {
+                        if (w.isKeyWindow) { keyWindow = w; break; }
+                    }
+                    if (keyWindow) break;
+                }
+            }
+        }
+        if (!keyWindow) {
+            keyWindow = [UIApplication sharedApplication].keyWindow;
+        }
+        if (!keyWindow) {
+            NSArray *windows = [UIApplication sharedApplication].windows;
+            if (windows.count > 0) keyWindow = windows.firstObject;
+        }
+
+        UIViewController *rootVC = keyWindow.rootViewController;
+        while (rootVC.presentedViewController) {
+            rootVC = rootVC.presentedViewController;
+        }
+        if (!rootVC) return;
+
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"CÓDIGO SECRETO"
+                                                                       message:@"Introduce tu código secreto:"
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+
+        [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+            textField.placeholder = @"CÓDIGO";
+            textField.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
+            textField.autocorrectionType = UITextAutocorrectionTypeNo;
+            textField.returnKeyType = UIReturnKeyDone;
+        }];
+
+        [alert addAction:[UIAlertAction actionWithTitle:@"Cancelar" style:UIAlertActionStyleCancel handler:nil]];
+        [alert addAction:[UIAlertAction actionWithTitle:@"Canjear" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            UITextField *tf = alert.textFields.firstObject;
+            if (tf && tf.text && on_submit) {
+                on_submit([tf.text UTF8String]);
+            }
+        }]];
+
+        [rootVC presentViewController:alert animated:YES completion:nil];
+    });
+}
+

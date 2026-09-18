@@ -3,21 +3,26 @@
 
 #include "raylib.h"
 
-#define SCREEN_W 240
-#define SCREEN_H 160
+extern int g_screen_w;
+extern int g_screen_h;
+#define SCREEN_W g_screen_w
+#define SCREEN_H g_screen_h
 
 #define MAX_BULLETS 20
 #define MAX_E_BULLETS 15
 #define MAX_ENEMIES 14
 #define MAX_EXPLO 6
-#define MAX_TITLE_STARS 24
-#define MAX_MENU_STARS 20
-#define MAX_GAME_STARS 18
+#define MAX_TITLE_STARS 45
+#define MAX_MENU_STARS 40
+#define MAX_GAME_STARS 32
 #define MAX_BLOOD_DROPS 25
 #define MAX_TEXTS 15
 
+#define MAX_PARTICLES 64
+#define MAX_GHOST_TRAILS 6
+
 typedef struct { int x, y, vx, vy, active; } Bullet;
-typedef struct { int x, y, hp, active, type, timer, freeze_timer, poison_timer, target_x, target_y; } Enemy;
+typedef struct { int x, y, hp, active, type, timer, freeze_timer, poison_timer, wet_timer, hit_flash_timer, target_x, target_y; } Enemy;
 typedef struct { int x, y, active, type, life_timer; } PowerUp;
 typedef struct { int x, y, timer, active; } ExplosionEffect;
 typedef struct { float x, y; char text[16]; Color color; int timer; } FloatingText;
@@ -25,6 +30,8 @@ typedef struct { int x, y, speed; Color color; } TitleStar;
 typedef struct { int x, y, vx, vy; Color color; } MenuStar;
 typedef struct { int x, y, speed; Color color; } GameStar;
 typedef struct { int x, y, speed; Color color; } BloodDrop;
+typedef struct { float x, y, vx, vy; Color color; int life, max_life; int size; } Particle;
+typedef struct { float x, y; int dx, dy; Color color; int timer, max_timer; } GhostTrail;
 
 typedef enum {
     INPUT_KEYBOARD = 0,
@@ -65,8 +72,6 @@ typedef struct {
 } GameConfig;
 
 #define LANG_COUNT 5
-
-#define NUM_ACHIEVEMENTS 43
 
 typedef enum {
     STR_PLAY = 0,
@@ -123,7 +128,6 @@ typedef enum {
     STR_WAVE,
     STR_GAMEPAD_CONNECTED,
     STR_KEYBOARD_CONNECTED,
-    STR_TOUCH_CONNECTED,
     STR_FREEZE,
     STR_POISON,
     STR_LOGROS,
@@ -170,6 +174,77 @@ typedef enum {
     STR_ACH_41_TITLE, STR_ACH_41_DESC,
     STR_ACH_42_TITLE, STR_ACH_42_DESC,
     STR_ACH_43_TITLE, STR_ACH_43_DESC,
+    STR_ACH_44_TITLE, STR_ACH_44_DESC,
+    STR_ACH_45_TITLE, STR_ACH_45_DESC,
+    STR_ACH_46_TITLE, STR_ACH_46_DESC,
+    STR_ACH_47_TITLE, STR_ACH_47_DESC,
+    STR_ACH_48_TITLE, STR_ACH_48_DESC,
+    STR_ACH_49_TITLE, STR_ACH_49_DESC,
+    STR_ACH_50_TITLE, STR_ACH_50_DESC,
+    STR_ACH_51_TITLE, STR_ACH_51_DESC,
+    STR_ACH_52_TITLE, STR_ACH_52_DESC,
+    STR_ACH_53_TITLE, STR_ACH_53_DESC,
+    STR_ACH_54_TITLE, STR_ACH_54_DESC,
+    STR_ACH_55_TITLE, STR_ACH_55_DESC,
+    STR_ACH_56_TITLE, STR_ACH_56_DESC,
+    STR_ACH_57_TITLE, STR_ACH_57_DESC,
+    STR_ACH_58_TITLE, STR_ACH_58_DESC,
+    STR_ACH_59_TITLE, STR_ACH_59_DESC,
+    STR_ACH_60_TITLE, STR_ACH_60_DESC,
+    STR_ACH_61_TITLE, STR_ACH_61_DESC,
+    STR_ACH_62_TITLE, STR_ACH_62_DESC,
+    STR_ACH_63_TITLE, STR_ACH_63_DESC,
+    STR_ACH_64_TITLE, STR_ACH_64_DESC,
+    STR_ACH_65_TITLE, STR_ACH_65_DESC,
+    STR_ACH_66_TITLE, STR_ACH_66_DESC,
+    STR_ACH_67_TITLE, STR_ACH_67_DESC,
+    STR_NEW_ACHIEVEMENT,
+    STR_ACH_DETAILS_HINT,
+    STR_STATUS_UNLOCKED,
+    STR_PROGRESS,
+    STR_MODE_WINDOWED,
+    STR_MODE_BORDERLESS,
+    STR_GAME_MODE_TITLE,
+    STR_MODE_CLASSIC,
+    STR_MODE_RUSH,
+    STR_MODE_TIME_ATTACK,
+    STR_MODE_COMING_SOON,
+    STR_RUSH_UNAVAILABLE_TITLE,
+    STR_RUSH_UNAVAILABLE_DESC,
+    STR_CLOSE_HINT,
+    STR_MAX_SCORE,
+    STR_MAX_WAVE,
+    STR_TOTAL_KILLS,
+    STR_MAX_TIME,
+    STR_TIME_UP,
+    STR_TIME_LEFT,
+    STR_WET,
+    STR_KONAMI_TITLE,
+    STR_KONAMI_SUB1,
+    STR_KONAMI_SUB2,
+    STR_KONAMI_SUB3,
+    STR_MODE_ASSAULT,
+    STR_ASSAULT_CHANGE,
+    STR_ASSAULT_NEXT,
+    STR_PU_SHIELD_NAME,
+    STR_PU_RAPID_NAME,
+    STR_PU_TRIPLE_NAME,
+    STR_PU_HEAVY_NAME,
+    STR_PU_STAR_NAME,
+    STR_PU_SLOWMO_NAME,
+    STR_PU_FREEZE_NAME,
+    STR_PU_POISON_NAME,
+    STR_PU_WATER_NAME,
+    STR_PU_NUKE_NAME,
+    STR_CHEAT_TITLE,
+    STR_CHEAT_SUBTITLE,
+    STR_CHEAT_SUBTITLE2,
+    STR_CHEAT_PLACEHOLDER,
+    STR_CHEAT_INVALID,
+    STR_CHEAT_ALREADY_USED,
+    STR_CHEAT_SUCCESS,
+    STR_MENU_SECRETS,
+    STR_TOUCH_CONNECTED,
     STR_TOUCH_BACK,
     STR_ACH_HINT,
     STR_ACH_STATUS_UNLOCKED,
@@ -179,14 +254,26 @@ typedef enum {
     STR_COUNT
 } StringId;
 
+typedef enum {
+    MODE_CLASSIC = 0,
+    MODE_RUSH = 1,
+    MODE_TIME_ATTACK = 2,
+    MODE_ASSAULT = 3
+} GameMode;
+
+#define NUM_ACHIEVEMENTS 67
+
+#define FPS_OPTION_COUNT 3
+#define RESOLUTION_COUNT 13
+
 extern InputDeviceType g_last_input_device;
 extern int g_device_toast_timer;
 extern InputDeviceType g_toast_device;
 extern KeyBindings g_keys;
 extern PadBindings g_pad;
 extern GameConfig g_config;
-#define RESOLUTION_COUNT 4
 extern const int g_resolutions[RESOLUTION_COUNT][2];
+extern const char* const g_res_names[RESOLUTION_COUNT];
 extern const char* const g_lang_names[LANG_COUNT];
 
 const char* T(StringId id);
@@ -196,7 +283,9 @@ const char* T(StringId id);
 #define C_BG            GBA_COLOR(0, 0, 0)
 #define C_RED           GBA_COLOR(14, 1, 2)
 #define C_PLAYER        GBA_COLOR(31, 4, 4)
-#define C_SHIELD        GBA_COLOR(2, 16, 31)
+#define C_SHIELD        GBA_COLOR(10, 26, 31)
+#define C_NAVY_BLUE     GBA_COLOR(1, 8, 25)
+#define C_WET_TINT      GBA_COLOR(2, 10, 26)
 #define C_RAPID         GBA_COLOR(31, 28, 0)
 #define C_BULLET        GBA_COLOR(31, 31, 0)
 #define C_E_BULLET      GBA_COLOR(31, 2, 2)
