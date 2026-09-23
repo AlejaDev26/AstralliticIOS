@@ -1,0 +1,176 @@
+================================================================================
+ASTRALLITIC (iOS) - GUIA DE INSTALACION / INSTALLATION GUIDE
+================================================================================
+Idiomas / Languages:
+1. ESPANOL
+2. ENGLISH
+3. FRANCAIS
+4. ITALIANO
+5. DEUTSCH
+================================================================================
+
+
+--------------------------------------------------------------------------------
+1. ESPANOL
+--------------------------------------------------------------------------------
+REQUISITOS:
+- PC o Mac con iTunes y iCloud instalados (en Windows, descargados de la web de Apple).
+- Cable USB.
+- Cuenta de Apple ID.
+
+METODO 1: SIDELOADLY (Recomendado)
+Web: https://sideloadly.io/
+1. Conecta el iPhone/iPad al ordenador y desbloquealo (pulsa "Confiar").
+2. Abre Sideloadly y arrastra "Astrallitic.ipa" a la aplicacion.
+3. Escribe tu Apple ID y pulsa "Start".
+4. Introduce tu contrasena si te la pide. Espera a que ponga "Done".
+
+METODO 2: ALTSTORE
+Web: https://altstore.io/
+1. Instala AltServer en tu PC/Mac y abrelo.
+2. Conecta el dispositivo por USB y pulsa "Install AltStore" -> Tu dispositivo.
+3. Introduce tu Apple ID.
+4. Pasa "Astrallitic.ipa" a tu iPhone (Archivos, AirDrop, etc.).
+5. Abre AltStore en el movil, ve a "My Apps", pulsa "+" y selecciona la IPA.
+
+PASO OBLIGATORIO ANTES DE ABRIR EL JUEGO:
+1. Ajustes > General > VPN y gestion de dispositivos:
+   Pulsa en tu Apple ID y dale a "Confiar".
+2. Ajustes > Privacidad y seguridad > Modo de desarrollador (iOS 16+):
+   Activalo y reinicia el dispositivo si te lo pide.
+
+Nota: Las cuentas gratuitas de Apple requieren renovar la instalacion cada 7 dias
+volviendo a conectar a Sideloadly o pulsando "Refresh" en AltStore.
+
+
+--------------------------------------------------------------------------------
+2. ENGLISH
+--------------------------------------------------------------------------------
+REQUIREMENTS:
+- PC or Mac with iTunes and iCloud installed (on Windows, use Apple's direct installer).
+- USB cable.
+- Apple ID.
+
+METHOD 1: SIDELOADLY (Recommended)
+Website: https://sideloadly.io/
+1. Connect your iPhone/iPad to the computer and unlock it (tap "Trust").
+2. Open Sideloadly and drag "Astrallitic.ipa" into the window.
+3. Enter your Apple ID and click "Start".
+4. Enter your password if prompted. Wait until it says "Done".
+
+METHOD 2: ALTSTORE
+Website: https://altstore.io/
+1. Install AltServer on your PC/Mac and run it.
+2. Connect your device via USB, click "Install AltStore" -> Select your device.
+3. Enter your Apple ID.
+4. Send "Astrallitic.ipa" to your iPhone (Files, AirDrop, etc.).
+5. Open AltStore on your phone, go to "My Apps", tap "+" and select the IPA.
+
+REQUIRED STEP BEFORE OPENING THE GAME:
+1. Settings > General > VPN & Device Management:
+   Tap your Apple ID and select "Trust".
+2. Settings > Privacy & Security > Developer Mode (iOS 16+):
+   Enable it and restart the device when prompted.
+
+Note: Free Apple IDs require refreshing the app every 7 days via Sideloadly
+or by tapping "Refresh" in AltStore.
+
+
+--------------------------------------------------------------------------------
+3. FRANCAIS
+--------------------------------------------------------------------------------
+PRE-REQUIS:
+- PC ou Mac avec iTunes et iCloud installes (sur Windows, version directe Apple).
+- Cable USB.
+- Identifiant Apple (Apple ID).
+
+METHODE 1: SIDELOADLY (Recommandee)
+Site web: https://sideloadly.io/
+1. Connectez l'iPhone/iPad a l'ordinateur et deverrouillez-le (choisir "Faire confiance").
+2. Ouvrez Sideloadly et glissez-deposez "Astrallitic.ipa".
+3. Entrez votre identifiant Apple et cliquez sur "Start".
+4. Entrez votre mot de passe si demande. Attendez le message "Done".
+
+METHODE 2: ALTSTORE
+Site web: https://altstore.io/
+1. Installez AltServer sur PC/Mac et lancez-le.
+2. Connectez votre appareil par USB, cliquez sur "Install AltStore" -> Votre appareil.
+3. Entrez votre identifiant Apple.
+4. Transferez "Astrallitic.ipa" sur votre iPhone (Fichiers, AirDrop, etc.).
+5. Ouvrez AltStore sur l'iPhone, allez dans "My Apps", touchez "+" et choisissez l'IPA.
+
+ETAPE OBLIGATOIRE AVANT DE LANCER LE JEU:
+1. Reglages > General > VPN et gestion des appareils:
+   Touchez votre identifiant Apple et choisissez "Faire confiance".
+2. Reglages > Confidentialite et securite > Mode developpeur (iOS 16+):
+   Activez-le et redemarrez l'appareil.
+
+Note: Avec un compte Apple gratuit, l'application doit etre renouvelee tous
+les 7 jours via Sideloadly ou AltStore.
+
+
+--------------------------------------------------------------------------------
+4. ITALIANO
+--------------------------------------------------------------------------------
+REQUISITI:
+- PC o Mac con iTunes e iCloud installati (su Windows, versione dal sito Apple).
+- Cavo USB.
+- ID Apple.
+
+METODO 1: SIDELOADLY (Consigliato)
+Sito web: https://sideloadly.io/
+1. Collega l'iPhone/iPad al computer e sbloccalo (tocca "Autorizza").
+2. Apri Sideloadly e trascina "Astrallitic.ipa" nella finestra.
+3. Inserisci il tuo ID Apple e clicca su "Start".
+4. Inserisci la password se richiesta. Attendi la scritta "Done".
+
+METODO 2: ALTSTORE
+Sito web: https://altstore.io/
+1. Installa AltServer su PC/Mac e avvialo.
+2. Collega il dispositivo via USB, clicca su "Install AltStore" -> Il tuo dispositivo.
+3. Inserisci il tuo ID Apple.
+4. Trasferisci "Astrallitic.ipa" sul tuo iPhone (File, AirDrop, ecc.).
+5. Apri AltStore sul telefono, vai su "My Apps", tocca "+" e seleziona l'IPA.
+
+PASSAGGIO OBBLIGATORIO PRIMA DI APRIRE IL GIOCO:
+1. Impostazioni > Generali > Gestione VPN e dispositivi:
+   Tocca il tuo ID Apple e seleziona "Autorizza".
+2. Impostazioni > Privacy e sicurezza > Modalita sviluppatore (iOS 16+):
+   Attivala e riavvia il dispositivo se richiesto.
+
+Nota: Gli account Apple gratuiti richiedono di rinnovare l'app ogni 7 giorni
+tramite Sideloadly o AltStore.
+
+
+--------------------------------------------------------------------------------
+5. DEUTSCH
+--------------------------------------------------------------------------------
+VORAUSSETZUNGEN:
+- PC oder Mac mit iTunes und iCloud (unter Windows die direkte Apple-Version).
+- USB-Kabel.
+- Apple-ID.
+
+METHODE 1: SIDELOADLY (Empfohlen)
+Webseite: https://sideloadly.io/
+1. iPhone/iPad per USB anschliessen und entsperren ("Vertrauen" wahlen).
+2. Sideloadly offnen und "Astrallitic.ipa" in das Fenster ziehen.
+3. Apple-ID eingeben und auf "Start" klicken.
+4. Passwort eingeben, falls abgefragt. Warten, bis "Done" angezeigt wird.
+
+METHODE 2: ALTSTORE
+Webseite: https://altstore.io/
+1. AltServer auf PC/Mac installieren und starten.
+2. Gerat per USB anschliessen, auf "Install AltStore" -> Dein Gerat klicken.
+3. Apple-ID eingeben.
+4. "Astrallitic.ipa" auf das iPhone ubertragen (Dateien, AirDrop usw.).
+5. AltStore auf dem Gerat offnen, zu "My Apps" gehen, auf "+" tippen und die IPA wahlen.
+
+ERFORDERLICHER SCHRITT VOR DEM STARTEN:
+1. Einstellungen > Allgemein > VPN und Gerateverwaltung:
+   Auf deine Apple-ID tippen und "Vertrauen" wahlen.
+2. Einstellungen > Datenschutz & Sicherheit > Entwicklermodus (ab iOS 16):
+   Aktivieren und das Gerat bei Aufforderung neu starten.
+
+Hinweis: Bei kostenlosen Apple-IDs muss die App alle 7 Tage uber Sideloadly
+oder AltStore erneuert werden.
+================================================================================
