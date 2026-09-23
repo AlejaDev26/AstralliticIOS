@@ -306,7 +306,7 @@ GameConfig g_config = {
     .target_fps = 1,
     .vsync = 1,
     .res_index = 2,
-    .screen_mode = 1,
+    .screen_mode = 0,
     .language = 1,
     .vol_bgm = 10,
     .vol_sfx = 10,
@@ -1312,7 +1312,7 @@ static bool IsTablet43(void) {
 
 static void ValidateConfigPC(void) {
     if (g_config.target_fps < 0 || g_config.target_fps >= FPS_OPTION_COUNT) g_config.target_fps = 1;
-    if (g_config.screen_mode < 0 || g_config.screen_mode > 2) g_config.screen_mode = IsTablet43() ? 2 : 1;
+    if (g_config.screen_mode < 0 || g_config.screen_mode > 2) g_config.screen_mode = IsTablet43() ? 2 : 0;
     if (g_config.language < 0 || g_config.language >= LANG_COUNT) g_config.language = 1;
     if (g_config.vol_bgm < 0 || g_config.vol_bgm > 10) g_config.vol_bgm = 10;
     if (g_config.vol_sfx < 0 || g_config.vol_sfx > 10) g_config.vol_sfx = 10;
@@ -2182,6 +2182,50 @@ static bool request_exit = false;
 
 #define SPAWN_FTEXT(fx, fy, fstr, fcol) SpawnFloatingText((float)(fx), (float)(fy), (fstr), (fcol))
 
+static void DrawAchievementToastNotification(int frame_cnt, bool under_hud) {
+    if (g_achievement_toast_timer <= 0) return;
+    const char* ach_header = T(STR_NEW_ACHIEVEMENT);
+    const char* ach_title = T(GetAchTitleId(g_latest_unlocked_ach));
+    int head_w = MeasureStringCustom(ach_header, 1);
+    int title_w = MeasureStringCustom(ach_title, 1);
+    int text_max_w = (title_w > head_w) ? title_w : head_w;
+    int toast_w = text_max_w + 32;
+    if (toast_w < 120) toast_w = 120;
+    int toast_h = 24;
+    int toast_x = (SCREEN_W - toast_w) / 2;
+
+    int target_y = 18;
+    int start_y = under_hud ? (16 - toast_h) : (-toast_h - 2);
+    int toast_y = target_y;
+    if (g_achievement_toast_timer > 160) {
+        float t = (float)(180 - g_achievement_toast_timer) / 20.0f;
+        if (t < 0.0f) t = 0.0f;
+        if (t > 1.0f) t = 1.0f;
+        t = sinf(t * (3.14159265f * 0.5f));
+        toast_y = (int)roundf(start_y + (target_y - start_y) * t);
+    } else if (g_achievement_toast_timer < 20) {
+        float t = (float)(20 - g_achievement_toast_timer) / 20.0f;
+        if (t < 0.0f) t = 0.0f;
+        if (t > 1.0f) t = 1.0f;
+        t = t * t;
+        toast_y = (int)roundf(target_y - (target_y - start_y) * t);
+    }
+
+    DrawBevelledBoxPC(toast_x, toast_y, toast_w, toast_h, GBA_COLOR(1, 4, 8), C_GREEN, true);
+    DrawRectangle(toast_x + 2, toast_y + 2, 1, 1, C_CYAN);
+    DrawRectangle(toast_x + toast_w - 3, toast_y + 2, 1, 1, C_CYAN);
+    DrawRectangle(toast_x + 2, toast_y + toast_h - 3, 1, 1, C_CYAN);
+    DrawRectangle(toast_x + toast_w - 3, toast_y + toast_h - 3, 1, 1, C_CYAN);
+    
+    DrawBevelledBoxPC(toast_x + 4, toast_y + 4, 16, 16, GBA_COLOR(2, 6, 12), GBA_COLOR(6, 14, 20), true);
+    int enemy_t = (g_latest_unlocked_ach >= 0 && g_latest_unlocked_ach < NUM_ACHIEVEMENTS) ? ach_enemy_types[g_latest_unlocked_ach] : 0;
+    Enemy t_enemy = { .x = toast_x + 6, .y = toast_y + 6, .type = enemy_t, .active = 1, .hp = 1 };
+    DrawEnemyPC(&t_enemy, frame_cnt);
+
+    DrawStringCustom(ach_header, toast_x + 24, toast_y + 5, C_YELLOW, 1);
+    DrawStringCustom(ach_title, toast_x + 24, toast_y + 14, WHITE, 1);
+}
+
 static void GameInit(void) {
     loadConfigPC();
     loadAchievementsPC();
@@ -2196,13 +2240,24 @@ static void GameInit(void) {
     InitWindow(0, 0, "Astrallitic");
     SetExitKey(KEY_NULL);
     if (!g_config_file_found) {
-        g_config.screen_mode = IsTablet43() ? 2 : 1;
+        g_config.screen_mode = IsTablet43() ? 2 : 0;
         g_config.language = 1;
         g_config.target_fps = 1;
         g_config.vol_bgm = 10;
         g_config.vol_sfx = 10;
         saveConfigPC();
     }
+#if defined(PLATFORM_IOS)
+    const char* flag_path = PlatformGetDataPath("v11_mode_complete.flag");
+    if (!FileExists(flag_path)) {
+        if (!IsTablet43()) {
+            g_config.screen_mode = 0; // Forzar modo COMPLETA por primera vez en esta version
+            saveConfigPC();
+        }
+        FILE* ff = fopen(flag_path, "w");
+        if (ff) { fputs("1", ff); fclose(ff); }
+    }
+#endif
     ApplyVideoSettings();
 
     if (FileExists(PlatformGetAssetPath("icon.png"))) {
@@ -6224,6 +6279,9 @@ static void GameUpdate(void) {
             DrawDashGaugePC(draw_px, gauge_y, dash_cd, 60, g_dash_ready_flash);
             DrawDamageFlashPC(g_damage_flash_timer);
 
+            // Pop-up de logro desbloqueado dibujado antes del HUD para emerger por debajo
+            DrawAchievementToastNotification(frame_count, true);
+
             DrawRectangle(0, 0, SCREEN_W, 16, GBA_COLOR(2, 4, 8));
             DrawRectangle(0, 15, SCREEN_W, 1, GBA_COLOR(0, 24, 31));
 
@@ -6421,48 +6479,9 @@ static void GameUpdate(void) {
 
         DrawDeviceNotificationToast(g_device_toast_timer, g_toast_device);
 
-        // --- POP-UP DE LOGRO DESBLOQUEADO (Arriba en el centro, justo debajo del HUD) ---
-        if (g_achievement_toast_timer > 0) {
-            const char* ach_header = T(STR_NEW_ACHIEVEMENT);
-            const char* ach_title = T(GetAchTitleId(g_latest_unlocked_ach));
-            int head_w = MeasureStringCustom(ach_header, 1);
-            int title_w = MeasureStringCustom(ach_title, 1);
-            int text_max_w = (title_w > head_w) ? title_w : head_w;
-            int toast_w = text_max_w + 32;
-            if (toast_w < 120) toast_w = 120;
-            int toast_h = 24;
-            int toast_x = (SCREEN_W - toast_w) / 2;
-
-            int target_y = 18;
-            int start_y = -toast_h - 2;
-            int toast_y = target_y;
-            if (g_achievement_toast_timer > 160) {
-                float t = (float)(180 - g_achievement_toast_timer) / 20.0f;
-                if (t < 0.0f) t = 0.0f;
-                if (t > 1.0f) t = 1.0f;
-                t = sinf(t * (3.14159265f * 0.5f));
-                toast_y = (int)roundf(start_y + (target_y - start_y) * t);
-            } else if (g_achievement_toast_timer < 20) {
-                float t = (float)(20 - g_achievement_toast_timer) / 20.0f;
-                if (t < 0.0f) t = 0.0f;
-                if (t > 1.0f) t = 1.0f;
-                t = t * t;
-                toast_y = (int)roundf(target_y - (target_y - start_y) * t);
-            }
-
-            DrawBevelledBoxPC(toast_x, toast_y, toast_w, toast_h, GBA_COLOR(1, 4, 8), C_GREEN, true);
-            DrawRectangle(toast_x + 2, toast_y + 2, 1, 1, C_CYAN);
-            DrawRectangle(toast_x + toast_w - 3, toast_y + 2, 1, 1, C_CYAN);
-            DrawRectangle(toast_x + 2, toast_y + toast_h - 3, 1, 1, C_CYAN);
-            DrawRectangle(toast_x + toast_w - 3, toast_y + toast_h - 3, 1, 1, C_CYAN);
-            
-            DrawBevelledBoxPC(toast_x + 4, toast_y + 4, 16, 16, GBA_COLOR(2, 6, 12), GBA_COLOR(6, 14, 20), true);
-            int enemy_t = (g_latest_unlocked_ach >= 0 && g_latest_unlocked_ach < NUM_ACHIEVEMENTS) ? ach_enemy_types[g_latest_unlocked_ach] : 0;
-            Enemy t_enemy = { .x = toast_x + 6, .y = toast_y + 6, .type = enemy_t, .active = 1, .hp = 1 };
-            DrawEnemyPC(&t_enemy, frame_count);
-
-            DrawStringCustom(ach_header, toast_x + 24, toast_y + 5, C_YELLOW, 1);
-            DrawStringCustom(ach_title, toast_x + 24, toast_y + 14, WHITE, 1);
+        // --- POP-UP DE LOGRO DESBLOQUEADO (en menús o pantallas sin HUD superior) ---
+        if (state != 9 && state != 1 && state != 3) {
+            DrawAchievementToastNotification(frame_count, false);
         }
 
         EndTextureMode();
