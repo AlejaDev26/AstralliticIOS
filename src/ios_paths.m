@@ -186,6 +186,23 @@ void PlatformIOSSetupAudioSession(void)
     [[AstralliticAudioSessionManager sharedInstance] setupAudioSession];
 }
 
+static __weak UIAlertController *s_current_alert = nil;
+
+bool PlatformIOSIsSecretCodeDialogVisible(void)
+{
+    return (s_current_alert != nil);
+}
+
+void PlatformIOSDismissSecretCodeDialog(void)
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (s_current_alert) {
+            [s_current_alert dismissViewControllerAnimated:YES completion:nil];
+            s_current_alert = nil;
+        }
+    });
+}
+
 void PlatformIOSShowSecretCodeDialog(const char* title, const char* message, const char* placeholder, const char* cancel_btn, const char* submit_btn, void (*on_submit)(const char* code))
 {
     NSString *nsTitle = (title && title[0]) ? [NSString stringWithUTF8String:title] : @"CÓDIGO SECRETO";
@@ -195,6 +212,11 @@ void PlatformIOSShowSecretCodeDialog(const char* title, const char* message, con
     NSString *nsSubmit = (submit_btn && submit_btn[0]) ? [NSString stringWithUTF8String:submit_btn] : @"Canjear";
 
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (s_current_alert) {
+            [s_current_alert dismissViewControllerAnimated:NO completion:nil];
+            s_current_alert = nil;
+        }
+
         UIWindow *keyWindow = nil;
         if (@available(iOS 13.0, *)) {
             for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
@@ -232,16 +254,25 @@ void PlatformIOSShowSecretCodeDialog(const char* title, const char* message, con
             textField.returnKeyType = UIReturnKeyDone;
         }];
 
-        [alert addAction:[UIAlertAction actionWithTitle:nsCancel style:UIAlertActionStyleCancel handler:nil]];
+        [alert addAction:[UIAlertAction actionWithTitle:nsCancel style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            if (s_current_alert == alert) {
+                s_current_alert = nil;
+            }
+        }]];
         [alert addAction:[UIAlertAction actionWithTitle:nsSubmit style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
             UITextField *tf = alert.textFields.firstObject;
+            if (s_current_alert == alert) {
+                s_current_alert = nil;
+            }
             if (tf && tf.text && on_submit) {
                 on_submit([tf.text UTF8String]);
             }
         }]];
 
+        s_current_alert = alert;
         [rootVC presentViewController:alert animated:YES completion:nil];
     });
 }
+
 
 

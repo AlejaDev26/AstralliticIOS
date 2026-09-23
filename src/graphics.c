@@ -636,8 +636,8 @@ void DrawMenuSpaceFramePC(Color bg_color, const char* title, Color title_color, 
     // Título y línea segmentada (solo si hay título)
     if (title != NULL && title[0] != '\0') {
         DrawHeaderCenteredStringCustom(title, 15, title_color, shadow_color, 2);
-        int div_w = 190;
-        int div_x = (SCREEN_W - div_w) / 2;
+        int div_w = SCREEN_W - 48;
+        int div_x = 24;
         DrawRectangle(div_x, 37, div_w, 1, line_color);
         // Marcador central
         DrawRectangle(div_x + div_w / 2 - 1, 36, 3, 3, title_color);

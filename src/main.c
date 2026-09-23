@@ -2484,6 +2484,37 @@ static void GameUpdate(void) {
         if (state == 0) {
             PlayGameBgm(0);
 
+#if defined(PLATFORM_IOS)
+            if (IOS_IsSecretCodeDialogVisible()) {
+                if (pad_active && IsGamepadButtonPressed(pad_id, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) {
+                    IOS_DismissSecretCodeDialog();
+                    g_show_cheat_popup = false;
+                    g_cheat_input_len = 0;
+                    g_cheat_input[0] = '\0';
+                    g_cheat_error = false;
+                    g_cheat_already_used_err = false;
+                    g_cheat_success = false;
+                    just_entered_menu = true;
+                    m_back = false;
+                    PlaySfx(sndHit);
+                    if (g_cheat_barrelroll_pending) {
+                        g_cheat_barrelroll_pending = false;
+                        g_barrel_roll_timer = 1.0f;
+                    }
+                }
+                // Suppress game navigation and actions while native dialog is open
+                m_up = false;
+                m_down = false;
+                m_left = false;
+                m_right = false;
+                m_accept = false;
+                m_back = false;
+                mouse_clicked = false;
+                mouse_down = false;
+                mouse_wheel = 0;
+            }
+#endif
+
             // --- Popup de trucos activo ---
             if (g_show_cheat_popup) {
                 int p_w = 224;
@@ -2497,6 +2528,7 @@ static void GameUpdate(void) {
 
                 // Botón [X] para cerrar en táctil
                 if (mouse_clicked && mouse_x >= p_x + p_w - 24 && mouse_x <= p_x + p_w - 2 && mouse_y >= p_y + 2 && mouse_y <= p_y + 20) {
+                    IOS_DismissSecretCodeDialog();
                     g_show_cheat_popup = false;
                     just_entered_menu = true;
                     m_back = false;
@@ -2523,6 +2555,7 @@ static void GameUpdate(void) {
                 if (g_cheat_success_timer > 0) {
                     g_cheat_success_timer--;
                     if (g_cheat_success_timer == 0) {
+                        IOS_DismissSecretCodeDialog();
                         g_cheat_success = false;
                         g_show_cheat_popup = false;
                         just_entered_menu = true;
@@ -2541,6 +2574,7 @@ static void GameUpdate(void) {
                 bool mouse_outside_click = mouse_clicked && (mouse_x < p_box_popup_x || mouse_x > p_box_popup_x + p_box_popup_w || mouse_y < p_box_popup_y || mouse_y > p_box_popup_y + p_box_popup_h);
                 bool close_pressed = IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT) || (pad_active && IsGamepadButtonPressed(pad_id, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) || mouse_outside_click;
                 if (close_pressed) {
+                    IOS_DismissSecretCodeDialog();
                     g_show_cheat_popup = false;
                     g_cheat_input_len = 0;
                     g_cheat_input[0] = '\0';
@@ -2565,6 +2599,7 @@ static void GameUpdate(void) {
                         g_cheat_success = false;
                     } else {
                         // Si ya está vacío y pulsa Backspace, cerramos
+                        IOS_DismissSecretCodeDialog();
                         g_show_cheat_popup = false;
                         just_entered_menu = true;
                         m_back = false;
@@ -2986,8 +3021,13 @@ static void GameUpdate(void) {
             if (opt_top < 15) opt_top = 15;
             int opt_start_y = opt_top + 37;
 
-            // Botones triangulares en el lateral derecho (x: 200..234)
-            if (mouse_clicked && mouse_x >= 200 && mouse_x <= 234) {
+            int row_w = 180;
+            int content_w = 210;
+            int row_x = (SCREEN_W - content_w) / 2;
+            int tri_x = row_x + row_w + 10;
+
+            // Botones triangulares en el lateral derecho
+            if (mouse_clicked && mouse_x >= tri_x - 4 && mouse_x <= tri_x + 24) {
                 if (mouse_y >= 44 && mouse_y <= 84) {
                     // Triangulo Arriba: sube de opcion si no esta arriba del todo
                     if (options_selection > 0) {
@@ -3029,8 +3069,6 @@ static void GameUpdate(void) {
             snprintf(opt_strings[6], sizeof(opt_strings[6]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
             snprintf(opt_strings[7], sizeof(opt_strings[7]), "%s", T(STR_DELETE_RECORDS));
 
-            int row_w = 175;
-            int row_x = 25;
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = options_scroll_offset + slot;
                 if (opt_idx >= total_opts) break;
@@ -3042,9 +3080,9 @@ static void GameUpdate(void) {
                         const char* right_arrow = strrchr(str, '>');
 
                         if (left_arrow && right_arrow) {
-                            if (mouse_x < 100) {
+                            if (mouse_x < row_x + row_w / 2 - 15) {
                                 m_left = true;
-                            } else if (mouse_x > 140) {
+                            } else if (mouse_x > row_x + row_w / 2 + 15) {
                                 m_right = true;
                             } else {
                                 m_accept = true;
@@ -3119,8 +3157,13 @@ static void GameUpdate(void) {
             if (opt_top < 15) opt_top = 15;
             int opt_start_y = opt_top + 40;
 
-            // Botones triangulares en el lateral derecho (x: 200..234)
-            if (mouse_clicked && mouse_x >= 200 && mouse_x <= 234) {
+            int p_row_w = 180;
+            int p_content_w = 210;
+            int p_row_x = (SCREEN_W - p_content_w) / 2;
+            int p_tri_x = p_row_x + p_row_w + 10;
+
+            // Botones triangulares en el lateral derecho
+            if (mouse_clicked && mouse_x >= p_tri_x - 4 && mouse_x <= p_tri_x + 24) {
                 if (mouse_y >= 44 && mouse_y <= 84) {
                     if (pause_options_selection > 0) {
                         pause_options_selection--;
@@ -3158,8 +3201,6 @@ static void GameUpdate(void) {
             snprintf(pause_opt_strings[4], sizeof(pause_opt_strings[4]), "%s: < %s >", T(STR_SCREEN_MODE), GetScreenModeOptionText(g_config.screen_mode));
             snprintf(pause_opt_strings[5], sizeof(pause_opt_strings[5]), "%s: < %s >", T(STR_FPS), GetFpsOptionText(g_config.target_fps));
 
-            int p_row_w = 175;
-            int p_row_x = 25;
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = pause_options_scroll_offset + slot;
                 if (opt_idx >= total_pause_opts) break;
@@ -3171,9 +3212,9 @@ static void GameUpdate(void) {
                         const char* right_arrow = strrchr(str, '>');
 
                         if (left_arrow && right_arrow) {
-                            if (mouse_x < 100) {
+                            if (mouse_x < p_row_x + p_row_w / 2 - 15) {
                                 m_left = true;
-                            } else if (mouse_x > 140) {
+                            } else if (mouse_x > p_row_x + p_row_w / 2 + 15) {
                                 m_right = true;
                             } else {
                                 m_accept = true;
@@ -3362,8 +3403,10 @@ static void GameUpdate(void) {
                     }
                 }
 
-                // Botones triangulares en lateral derecho (x: 198..234)
-                if (mouse_clicked && mouse_x >= 198 && mouse_x <= 234) {
+                // Botones triangulares en lateral derecho
+                int grid_start_x = (SCREEN_W - 201) / 2;
+                int tri_cx = grid_start_x + 191;
+                if (mouse_clicked && mouse_x >= tri_cx - 14 && mouse_x <= tri_cx + 14) {
                     int total_pages = (NUM_ACHIEVEMENTS + 7) / 8;
                     int cur_p = selected_ach_index / 8;
                     if (mouse_y >= 44 && mouse_y <= 84) {
@@ -3385,11 +3428,10 @@ static void GameUpdate(void) {
                     }
                 }
 
-                if (show_ach_details && mouse_clicked && (mouse_x < 198)) {
+                if (show_ach_details && mouse_clicked && (mouse_x < tri_cx - 14)) {
                     show_ach_details = false;
                     PlaySfx(sndHit);
-                } else if (!show_ach_details && mouse_clicked && (mouse_x < 198)) {
-                    int grid_start_x = 16;
+                } else if (!show_ach_details && mouse_clicked && (mouse_x < tri_cx - 14)) {
                     for (int ach_i = 0; ach_i < NUM_ACHIEVEMENTS; ach_i++) {
                         int page_base = (selected_ach_index / 8) * 8;
                         int i_local = ach_i - page_base;
@@ -5116,8 +5158,8 @@ static void GameUpdate(void) {
 
             // Cabecera compacta para Modos de Juego (no solapa con las tarjetas)
             DrawHeaderCenteredStringCustom(T(STR_GAME_MODE_TITLE), 9, c_lime_title, c_lime_shadow, 2);
-            int div_w = 190;
-            int div_x = (SCREEN_W - div_w) / 2;
+            int div_w = SCREEN_W - 48;
+            int div_x = 24;
             DrawRectangle(div_x, 27, div_w, 1, c_lime_line);
             DrawRectangle(div_x + div_w / 2 - 1, 26, 3, 3, c_lime_title);
 
@@ -5500,7 +5542,8 @@ static void GameUpdate(void) {
                 }
             } else {
                 int start_index = (selected_ach_index / 8) * 8;
-                int grid_start_x = 16;
+                int grid_start_x = (SCREEN_W - 201) / 2;
+                int tri_cx = grid_start_x + 191;
 
                 for (int i = 0; i < 8; i++) {
                     int ach_idx = start_index + i;
@@ -5543,23 +5586,23 @@ static void GameUpdate(void) {
                 bool can_ach_up = (cur_page > 0);
                 Color ach_up_col = can_ach_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
                 Color ach_up_border = can_ach_up ? WHITE : GBA_COLOR(10, 14, 18);
-                Vector2 a1_up = { 214, 52 };
-                Vector2 a2_up = { 204, 72 };
-                Vector2 a3_up = { 224, 72 };
+                Vector2 a1_up = { (float)tri_cx, 52 };
+                Vector2 a2_up = { (float)(tri_cx - 10), 72 };
+                Vector2 a3_up = { (float)(tri_cx + 10), 72 };
                 DrawTriangle(a1_up, a2_up, a3_up, ach_up_col);
                 DrawTriangleLines(a1_up, a2_up, a3_up, ach_up_border);
 
                 char page_buf[16];
                 snprintf(page_buf, sizeof(page_buf), "%d/%d", cur_page + 1, total_pages);
                 int page_w = MeasureStringCustom(page_buf, 1);
-                DrawStringCustom(page_buf, 214 - (page_w / 2), 87, C_CYAN, 1);
+                DrawStringCustom(page_buf, tri_cx - (page_w / 2), 87, C_CYAN, 1);
 
                 bool can_ach_dn = (cur_page < total_pages - 1);
                 Color ach_dn_col = can_ach_dn ? C_YELLOW : GBA_COLOR(6, 8, 12);
                 Color ach_dn_border = can_ach_dn ? WHITE : GBA_COLOR(10, 14, 18);
-                Vector2 a1_dn = { 204, 106 };
-                Vector2 a2_dn = { 224, 106 };
-                Vector2 a3_dn = { 214, 126 };
+                Vector2 a1_dn = { (float)(tri_cx - 10), 106 };
+                Vector2 a2_dn = { (float)(tri_cx + 10), 106 };
+                Vector2 a3_dn = { (float)tri_cx, 126 };
                 DrawTriangle(a1_dn, a2_dn, a3_dn, ach_dn_col);
                 DrawTriangleLines(a1_dn, a2_dn, a3_dn, ach_dn_border);
 
@@ -5653,8 +5696,12 @@ static void GameUpdate(void) {
             };
 
             int total_opts = 8;
-            int row_w = 175;
-            int row_x = 25;
+            int row_w = 180;
+            int content_w = 210;
+            int row_x = (SCREEN_W - content_w) / 2;
+            int tri_x = row_x + row_w + 10;
+            int tri_cx = tri_x + 10;
+
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = options_scroll_offset + slot;
                 if (opt_idx >= total_opts) break;
@@ -5672,9 +5719,13 @@ static void GameUpdate(void) {
                     DrawCharCustom('>', row_x + 9 + bounce, row_y + 4, ColorLerp(C_YELLOW, WHITE, pulse), 1);
                     DrawCharCustom('<', row_x + row_w - 14 - bounce, row_y + 4, ColorLerp(C_YELLOW, WHITE, pulse), 1);
                     DrawCharCustom('<', row_x + row_w - 9 - bounce, row_y + 4, C_YELLOW, 1);
-                    DrawCenteredStringCustom(opt_strings[opt_idx], row_y + 4, C_YELLOW, 1);
+                    int str_w = MeasureStringCustom(opt_strings[opt_idx], 1);
+                    int str_x = row_x + (row_w - str_w) / 2;
+                    DrawStringCustom(opt_strings[opt_idx], str_x, row_y + 4, C_YELLOW, 1);
                 } else {
-                    DrawCenteredStringCustom(opt_strings[opt_idx], row_y + 4, GBA_COLOR(18, 16, 24), 1);
+                    int str_w = MeasureStringCustom(opt_strings[opt_idx], 1);
+                    int str_x = row_x + (row_w - str_w) / 2;
+                    DrawStringCustom(opt_strings[opt_idx], str_x, row_y + 4, GBA_COLOR(18, 16, 24), 1);
                 }
 
                 if (opt_idx == 4) {
@@ -5688,18 +5739,18 @@ static void GameUpdate(void) {
             bool can_scroll_up = (options_selection > 0);
             Color up_col = can_scroll_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color up_border = can_scroll_up ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_up = { 216, 52 };
-            Vector2 p2_up = { 206, 72 };
-            Vector2 p3_up = { 226, 72 };
+            Vector2 p1_up = { (float)tri_cx, 52 };
+            Vector2 p2_up = { (float)tri_x, 72 };
+            Vector2 p3_up = { (float)(tri_x + 20), 72 };
             DrawTriangle(p1_up, p2_up, p3_up, up_col);
             DrawTriangleLines(p1_up, p2_up, p3_up, up_border);
 
             bool can_scroll_down = (options_selection < total_opts - 1);
             Color down_col = can_scroll_down ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color down_border = can_scroll_down ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_dn = { 206, 106 };
-            Vector2 p2_dn = { 226, 106 };
-            Vector2 p3_dn = { 216, 126 };
+            Vector2 p1_dn = { (float)tri_x, 106 };
+            Vector2 p2_dn = { (float)(tri_x + 20), 106 };
+            Vector2 p3_dn = { (float)tri_cx, 126 };
             DrawTriangle(p1_dn, p2_dn, p3_dn, down_col);
             DrawTriangleLines(p1_dn, p2_dn, p3_dn, down_border);
         }
@@ -5718,7 +5769,9 @@ static void GameUpdate(void) {
             int header_y = opt_top + 1;
 
             DrawHeaderCenteredStringCustom(T(STR_OPTIONS), header_y, C_CYAN, GBA_COLOR(0, 10, 18), 2);
-            DrawRectangle((SCREEN_W - 184) / 2, header_y + 31, 184, 1, GBA_COLOR(0, 24, 31));
+            int p_div_w = SCREEN_W - 48;
+            int p_div_x = 24;
+            DrawRectangle(p_div_x, header_y + 31, p_div_w, 1, GBA_COLOR(0, 24, 31));
 
             char pause_opt_strings[6][64];
             snprintf(pause_opt_strings[0], sizeof(pause_opt_strings[0]), "%s: < %d%% >", T(STR_VOL_BGM), g_config.vol_bgm * 10);
@@ -5734,8 +5787,11 @@ static void GameUpdate(void) {
             };
 
             int total_pause_opts = 6;
-            int p_row_w = 175;
-            int p_row_x = 25;
+            int p_row_w = 180;
+            int p_content_w = 210;
+            int p_row_x = (SCREEN_W - p_content_w) / 2;
+            int p_tri_x = p_row_x + p_row_w + 10;
+            int p_tri_cx = p_tri_x + 10;
             int opt_start_y = opt_top + 40;
             for (int slot = 0; slot < 3; slot++) {
                 int opt_idx = pause_options_scroll_offset + slot;
@@ -5757,9 +5813,13 @@ static void GameUpdate(void) {
                         DrawCharCustom('<', p_row_x + p_row_w - 14 - bounce, row_y + 4, ColorLerp(C_YELLOW, WHITE, pulse), 1);
                         DrawCharCustom('<', p_row_x + p_row_w - 9 - bounce, row_y + 4, C_YELLOW, 1);
                     }
-                    DrawCenteredStringCustom(pause_opt_strings[opt_idx], row_y + 4, C_YELLOW, 1);
+                    int str_w = MeasureStringCustom(pause_opt_strings[opt_idx], 1);
+                    int str_x = p_row_x + (p_row_w - str_w) / 2;
+                    DrawStringCustom(pause_opt_strings[opt_idx], str_x, row_y + 4, C_YELLOW, 1);
                 } else {
-                    DrawCenteredStringCustom(pause_opt_strings[opt_idx], row_y + 4, GBA_COLOR(14, 22, 28), 1);
+                    int str_w = MeasureStringCustom(pause_opt_strings[opt_idx], 1);
+                    int str_x = p_row_x + (p_row_w - str_w) / 2;
+                    DrawStringCustom(pause_opt_strings[opt_idx], str_x, row_y + 4, GBA_COLOR(14, 22, 28), 1);
                 }
 
                 DrawMenuIconPC(p_icons[opt_idx], is_sel ? p_row_x + 18 : p_row_x + 6, row_y + 3, is_sel ? C_CYAN : GBA_COLOR(0, 18, 24));
@@ -5769,18 +5829,18 @@ static void GameUpdate(void) {
             bool can_p_scroll_up = (pause_options_selection > 0);
             Color p_up_col = can_p_scroll_up ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color p_up_border = can_p_scroll_up ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_pup = { 216, 52 };
-            Vector2 p2_pup = { 206, 72 };
-            Vector2 p3_pup = { 226, 72 };
+            Vector2 p1_pup = { (float)p_tri_cx, 52 };
+            Vector2 p2_pup = { (float)p_tri_x, 72 };
+            Vector2 p3_pup = { (float)(p_tri_x + 20), 72 };
             DrawTriangle(p1_pup, p2_pup, p3_pup, p_up_col);
             DrawTriangleLines(p1_pup, p2_pup, p3_pup, p_up_border);
 
             bool can_p_scroll_down = (pause_options_selection < total_pause_opts - 1);
             Color p_down_col = can_p_scroll_down ? C_YELLOW : GBA_COLOR(6, 8, 12);
             Color p_down_border = can_p_scroll_down ? WHITE : GBA_COLOR(10, 14, 18);
-            Vector2 p1_pdn = { 206, 106 };
-            Vector2 p2_pdn = { 226, 106 };
-            Vector2 p3_pdn = { 216, 126 };
+            Vector2 p1_pdn = { (float)p_tri_x, 106 };
+            Vector2 p2_pdn = { (float)(p_tri_x + 20), 106 };
+            Vector2 p3_pdn = { (float)p_tri_cx, 126 };
             DrawTriangle(p1_pdn, p2_pdn, p3_pdn, p_down_col);
             DrawTriangleLines(p1_pdn, p2_pdn, p3_pdn, p_down_border);
 
@@ -5836,73 +5896,77 @@ static void GameUpdate(void) {
                     DrawRectangle(menu_stars[m].x, my, 1, 1, menu_stars[m].color);
                 }
 
+                int phone_w = 200;
+                int phone_x = (SCREEN_W - phone_w) / 2;
+                int dx = phone_x - 20;
+
                 // Chasis exterior del teléfono móvil en horizontal
-                DrawRectangle(20, 38, 200, 98, GBA_COLOR(2, 4, 8));
-                DrawRectangleLines(20, 38, 200, 98, GBA_COLOR(0, 26, 31));
+                DrawRectangle(20 + dx, 38, 200, 98, GBA_COLOR(2, 4, 8));
+                DrawRectangleLines(20 + dx, 38, 200, 98, GBA_COLOR(0, 26, 31));
                 // Pantalla interior (x: 32 a 208, y: 42 a 132)
-                DrawRectangle(32, 42, 176, 90, GBA_COLOR(1, 2, 5));
-                DrawRectangleLines(32, 42, 176, 90, GBA_COLOR(0, 16, 22));
+                DrawRectangle(32 + dx, 42, 176, 90, GBA_COLOR(1, 2, 5));
+                DrawRectangleLines(32 + dx, 42, 176, 90, GBA_COLOR(0, 16, 22));
 
                 // Cámara frontal (izq) y altavoz (der)
-                DrawCircle(26, 87, 2, GBA_COLOR(8, 12, 16));
-                DrawRectangle(214, 81, 2, 12, GBA_COLOR(8, 12, 16));
+                DrawCircle(26 + dx, 87, 2, GBA_COLOR(8, 12, 16));
+                DrawRectangle(214 + dx, 81, 2, 12, GBA_COLOR(8, 12, 16));
 
                 // --- LADO IZQUIERDO: JOYSTICK VIRTUAL FLOTANTE (ESTILO RETRO 16-BIT) ---
-                DrawRectangle(42, 62, 38, 38, GBA_COLOR(1, 4, 10));
-                DrawRectangleLines(42, 62, 38, 38, GBA_COLOR(0, 24, 31));
+                DrawRectangle(42 + dx, 62, 38, 38, GBA_COLOR(1, 4, 10));
+                DrawRectangleLines(42 + dx, 62, 38, 38, GBA_COLOR(0, 24, 31));
                 // Flechas cardinales
-                DrawRectangle(59, 64, 4, 3, WHITE);
-                DrawRectangle(59, 95, 4, 3, WHITE);
-                DrawRectangle(44, 79, 3, 4, WHITE);
-                DrawRectangle(75, 79, 3, 4, WHITE);
+                DrawRectangle(59 + dx, 64, 4, 3, WHITE);
+                DrawRectangle(59 + dx, 95, 4, 3, WHITE);
+                DrawRectangle(44 + dx, 79, 3, 4, WHITE);
+                DrawRectangle(75 + dx, 79, 3, 4, WHITE);
                 // Pomo central
-                DrawRectangle(53, 73, 16, 16, C_CYAN);
-                DrawRectangleLines(53, 73, 16, 16, WHITE);
-                DrawRectangle(58, 78, 6, 6, WHITE);
+                DrawRectangle(53 + dx, 73, 16, 16, C_CYAN);
+                DrawRectangleLines(53 + dx, 73, 16, 16, WHITE);
+                DrawRectangle(58 + dx, 78, 6, 6, WHITE);
                 int move_w = MeasureStringCustom(T(STR_CTRL_MOVE), 1);
-                DrawStringCustom(T(STR_CTRL_MOVE), 61 - (move_w / 2), 108, C_CYAN, 1);
+                DrawStringCustom(T(STR_CTRL_MOVE), 61 + dx - (move_w / 2), 108, C_CYAN, 1);
 
                 // --- BOTÓN PAUSA [II] (esquina superior derecha con amplio margen) ---
-                DrawRectangle(176, 46, 12, 10, GBA_COLOR(4, 8, 12));
-                DrawRectangleLines(176, 46, 12, 10, C_CYAN);
-                DrawRectangle(177, 47, 10, 1, (Color){ 255, 255, 255, 100 });
-                DrawStringCustom("II", 179, 48, WHITE, 1);
+                DrawRectangle(176 + dx, 46, 12, 10, GBA_COLOR(4, 8, 12));
+                DrawRectangleLines(176 + dx, 46, 12, 10, C_CYAN);
+                DrawRectangle(177 + dx, 47, 10, 1, (Color){ 255, 255, 255, 100 });
+                DrawStringCustom("II", 179 + dx, 48, WHITE, 1);
                 int p_w = MeasureStringCustom(T(STR_PAUSE), 1);
-                DrawStringCustom(T(STR_PAUSE), 171 - p_w, 48, GBA_COLOR(18, 22, 26), 1);
+                DrawStringCustom(T(STR_PAUSE), 171 + dx - p_w, 48, GBA_COLOR(18, 22, 26), 1);
 
                 // --- COLUMNA CENTRAL: DASH [D] Y TURBO [T] ---
                 // Botón Dash [D] (Verde esmeralda, posición superior izquierda)
-                DrawRectangle(120, 66, 14, 14, GBA_COLOR(2, 18, 8));
-                DrawRectangleLines(120, 66, 14, 14, C_GREEN);
-                DrawRectangle(121, 67, 12, 1, (Color){ 255, 255, 255, 120 });
-                DrawStringCustom("D", 125, 70, C_GREEN, 1);
+                DrawRectangle(120 + dx, 66, 14, 14, GBA_COLOR(2, 18, 8));
+                DrawRectangleLines(120 + dx, 66, 14, 14, C_GREEN);
+                DrawRectangle(121 + dx, 67, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("D", 125 + dx, 70, C_GREEN, 1);
                 int d_w = MeasureStringCustom(T(STR_CTRL_DASH), 1);
-                DrawStringCustom(T(STR_CTRL_DASH), 115 - d_w, 70, C_GREEN, 1);
+                DrawStringCustom(T(STR_CTRL_DASH), 115 + dx - d_w, 70, C_GREEN, 1);
 
                 // Botón Turbo [T] (Azul / Cian, posición inferior izquierda)
-                DrawRectangle(120, 96, 14, 14, GBA_COLOR(2, 10, 26));
-                DrawRectangleLines(120, 96, 14, 14, C_CYAN);
-                DrawRectangle(121, 97, 12, 1, (Color){ 255, 255, 255, 120 });
-                DrawStringCustom("T", 125, 100, C_CYAN, 1);
+                DrawRectangle(120 + dx, 96, 14, 14, GBA_COLOR(2, 10, 26));
+                DrawRectangleLines(120 + dx, 96, 14, 14, C_CYAN);
+                DrawRectangle(121 + dx, 97, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("T", 125 + dx, 100, C_CYAN, 1);
                 int t_w = MeasureStringCustom(T(STR_CTRL_TURBO), 1);
-                DrawStringCustom(T(STR_CTRL_TURBO), 115 - t_w, 100, C_CYAN, 1);
+                DrawStringCustom(T(STR_CTRL_TURBO), 115 + dx - t_w, 100, C_CYAN, 1);
 
                 // --- COLUMNA DERECHA: AIM LOCK [L] Y DISPARO [A] (PERFECTAMENTE CENTRADOS) ---
                 // Botón Aim Lock [L] (Dorado / Amarillo, posición superior derecha)
-                DrawRectangle(162, 66, 14, 14, GBA_COLOR(24, 18, 2));
-                DrawRectangleLines(162, 66, 14, 14, C_YELLOW);
-                DrawRectangle(163, 67, 12, 1, (Color){ 255, 255, 255, 120 });
-                DrawStringCustom("L", 167, 70, C_YELLOW, 1);
+                DrawRectangle(162 + dx, 66, 14, 14, GBA_COLOR(24, 18, 2));
+                DrawRectangleLines(162 + dx, 66, 14, 14, C_YELLOW);
+                DrawRectangle(163 + dx, 67, 12, 1, (Color){ 255, 255, 255, 120 });
+                DrawStringCustom("L", 167 + dx, 70, C_YELLOW, 1);
                 int l_w = MeasureStringCustom(T(STR_CTRL_AIM), 1);
-                DrawStringCustom(T(STR_CTRL_AIM), 169 - (l_w / 2), 82, C_YELLOW, 1);
+                DrawStringCustom(T(STR_CTRL_AIM), 169 + dx - (l_w / 2), 82, C_YELLOW, 1);
 
                 // Botón Disparo [A] (Rojo carmesí, botón principal)
-                DrawRectangle(161, 95, 16, 16, GBA_COLOR(26, 4, 4));
-                DrawRectangleLines(161, 95, 16, 16, GBA_COLOR(31, 14, 14));
-                DrawRectangle(162, 96, 14, 1, (Color){ 255, 255, 255, 140 });
-                DrawStringCustom("A", 166, 100, WHITE, 1);
+                DrawRectangle(161 + dx, 95, 16, 16, GBA_COLOR(26, 4, 4));
+                DrawRectangleLines(161 + dx, 95, 16, 16, GBA_COLOR(31, 14, 14));
+                DrawRectangle(162 + dx, 96, 14, 1, (Color){ 255, 255, 255, 140 });
+                DrawStringCustom("A", 166 + dx, 100, WHITE, 1);
                 int a_w = MeasureStringCustom(T(STR_CTRL_SHOOT), 1);
-                DrawStringCustom(T(STR_CTRL_SHOOT), 169 - (a_w / 2), 113, GBA_COLOR(31, 14, 14), 1);
+                DrawStringCustom(T(STR_CTRL_SHOOT), 169 + dx - (a_w / 2), 113, GBA_COLOR(31, 14, 14), 1);
             } else {
                 DrawMenuSpaceFramePC(C_CTRL_BG, T(STR_CTRL_TITLE), GBA_COLOR(0, 31, 10), GBA_COLOR(0, 10, 4), GBA_COLOR(0, 26, 10));
                 DrawNebulaBackgroundPC(SCREEN_W, SCREEN_H, frame_count);
