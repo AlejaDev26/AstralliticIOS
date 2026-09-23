@@ -152,7 +152,7 @@ void IOS_SetDisplayFPS(int fps) {
         dlink_target = "[displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];"
         dlink_replacement = """s_ios_display_link = displayLink;
     [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    IOS_SetDisplayFPS(120);"""
+    IOS_SetDisplayFPS(60);"""
         if "s_ios_display_link = displayLink;" not in content:
             old_block = """if (@available(iOS 15.0, *)) {
         displayLink.preferredFrameRateRange = CAFrameRateRangeMake(30.0, 120.0, 120.0);

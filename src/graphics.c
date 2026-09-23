@@ -490,6 +490,28 @@ void DrawGamepadIcon16Bit(int x, int y, bool is_hovered) {
     DrawRectangle(x + 8, y + 4, 2, 2, btn_color);
 }
 
+void DrawTouchIcon16Bit(int x, int y, bool is_hovered) {
+    Color col_ring   = is_hovered ? C_YELLOW : C_CYAN;
+    Color col_finger = is_hovered ? WHITE : GBA_COLOR(31, 26, 18);
+    Color col_shade  = is_hovered ? GBA_COLOR(31, 28, 0) : GBA_COLOR(22, 16, 10);
+    Color col_glow   = is_hovered ? C_YELLOW : WHITE;
+
+    // Onda de toque (anillo superior)
+    DrawRectangle(x + 5, y, 4, 1, col_ring);
+    DrawRectangle(x + 3, y + 1, 2, 1, col_ring);
+    DrawRectangle(x + 9, y + 1, 2, 1, col_ring);
+    DrawRectangle(x + 6, y + 1, 2, 1, col_glow);
+
+    // Dedo apuntando hacia arriba
+    DrawRectangle(x + 6, y + 2, 2, 4, col_finger);
+    DrawRectangle(x + 8, y + 3, 1, 3, col_shade);
+
+    // Palma y mano
+    DrawRectangle(x + 4, y + 5, 5, 4, col_finger);
+    DrawRectangle(x + 2, y + 6, 2, 2, col_finger); // Pulgar
+    DrawRectangle(x + 4, y + 8, 5, 1, col_shade);
+}
+
 void DrawActionIcon16Bit(int type, int x, int y, bool is_sel) {
     Color col_main = is_sel ? C_YELLOW : C_CYAN;
     Color col_sec  = is_sel ? WHITE : GBA_COLOR(31, 28, 0);
@@ -650,7 +672,11 @@ void DrawDeviceNotificationToast(int timer, InputDeviceType dev) {
     if (timer > 100) anim_offset = (timer - 100) / 2;
     else if (timer < 20) anim_offset = (20 - timer) / 2;
 
-    int box_w = 110;
+    const char* str = (dev == INPUT_GAMEPAD) ? T(STR_GAMEPAD_CONNECTED) :
+                      ((dev == INPUT_TOUCH)   ? T(STR_TOUCH_CONNECTED)   : T(STR_KEYBOARD_CONNECTED));
+    int text_w = MeasureStringCustom(str, 1);
+    int box_w = text_w + 24;
+    if (box_w < 112) box_w = 112;
     int box_h = 16;
     int box_x = SCREEN_W - box_w - 4 + anim_offset;
     int box_y = SCREEN_H - box_h - 4;
@@ -660,10 +686,13 @@ void DrawDeviceNotificationToast(int timer, InputDeviceType dev) {
 
     if (dev == INPUT_GAMEPAD) {
         DrawGamepadIcon16Bit(box_x + 3, box_y + 3, false);
-        DrawStringCustom(T(STR_GAMEPAD_CONNECTED), box_x + 18, box_y + 5, C_YELLOW, 1);
+        DrawStringCustom(str, box_x + 18, box_y + 5, C_YELLOW, 1);
+    } else if (dev == INPUT_TOUCH) {
+        DrawTouchIcon16Bit(box_x + 3, box_y + 3, false);
+        DrawStringCustom(str, box_x + 18, box_y + 5, C_GREEN, 1);
     } else {
         DrawKeyboardIcon16Bit(box_x + 2, box_y + 3, false);
-        DrawStringCustom(T(STR_KEYBOARD_CONNECTED), box_x + 18, box_y + 5, C_CYAN, 1);
+        DrawStringCustom(str, box_x + 18, box_y + 5, C_CYAN, 1);
     }
 }
 

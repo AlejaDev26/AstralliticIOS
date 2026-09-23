@@ -35,7 +35,8 @@ typedef struct { float x, y; int dx, dy; Color color; int timer, max_timer; } Gh
 
 typedef enum {
     INPUT_KEYBOARD = 0,
-    INPUT_GAMEPAD
+    INPUT_GAMEPAD,
+    INPUT_TOUCH
 } InputDeviceType;
 
 typedef struct {

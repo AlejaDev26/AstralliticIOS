@@ -23,6 +23,7 @@ void DrawHeaderCharCustom(char c, int x, int y, Color main_color, Color shadow_c
 void DrawHeaderCenteredStringCustom(const char* str, int y, Color main_color, Color shadow_color, int scale);
 void DrawKeyboardIcon16Bit(int x, int y, bool is_hovered);
 void DrawGamepadIcon16Bit(int x, int y, bool is_hovered);
+void DrawTouchIcon16Bit(int x, int y, bool is_hovered);
 void DrawActionIcon16Bit(int type, int x, int y, bool is_sel);
 void DrawLanguageFlag16Bit(int lang, int x, int y);
 void DrawSpaceShipCursor16Bit(int x, int y, bool is_clicking);

@@ -22,10 +22,17 @@ extern int IOS_GetMaxRefreshRate(void);
 extern void IOS_SetDisplayFPS(int fps);
 #endif
 
+#if defined(PLATFORM_IOS) || defined(PLATFORM_ANDROID)
+InputDeviceType g_last_input_device = INPUT_TOUCH;
+int g_device_toast_timer = 0;
+static float g_device_toast_timer_f = 0.0f;
+InputDeviceType g_toast_device = INPUT_TOUCH;
+#else
 InputDeviceType g_last_input_device = INPUT_KEYBOARD;
 int g_device_toast_timer = 0;
 static float g_device_toast_timer_f = 0.0f;
 InputDeviceType g_toast_device = INPUT_KEYBOARD;
+#endif
 
 #define ACH_NOVATO_FACIL 0
 #define ACH_NOVATO_NORMAL 1
@@ -299,8 +306,8 @@ GameConfig g_config = {
     .target_fps = 1,
     .vsync = 1,
     .res_index = 2,
-    .screen_mode = 0,
-    .language = 0,
+    .screen_mode = 1,
+    .language = 1,
     .vol_bgm = 10,
     .vol_sfx = 10,
     .crt_filter = 0
@@ -1294,10 +1301,19 @@ void saveConfigPC() {
     if (f) { fwrite(&g_config, sizeof(GameConfig), 1, f); fclose(f); }
 }
 
+static bool IsTablet43(void) {
+    float sw = (float)GetScreenWidth();
+    float sh = (float)GetScreenHeight();
+    if (sh <= 0.001f) return false;
+    float aspect = sw / sh;
+    if (aspect < 1.0f) aspect = 1.0f / aspect;
+    return (aspect < 1.55f);
+}
+
 static void ValidateConfigPC(void) {
     if (g_config.target_fps < 0 || g_config.target_fps >= FPS_OPTION_COUNT) g_config.target_fps = 1;
-    if (g_config.screen_mode < 0 || g_config.screen_mode > 2) g_config.screen_mode = 0;
-    if (g_config.language < 0 || g_config.language >= LANG_COUNT) g_config.language = 0;
+    if (g_config.screen_mode < 0 || g_config.screen_mode > 2) g_config.screen_mode = IsTablet43() ? 2 : 1;
+    if (g_config.language < 0 || g_config.language >= LANG_COUNT) g_config.language = 1;
     if (g_config.vol_bgm < 0 || g_config.vol_bgm > 10) g_config.vol_bgm = 10;
     if (g_config.vol_sfx < 0 || g_config.vol_sfx > 10) g_config.vol_sfx = 10;
     if (g_config.crt_filter < 0 || g_config.crt_filter >= FILTER_COUNT) g_config.crt_filter = 0;
@@ -1421,15 +1437,6 @@ static const char* GetFpsOptionText(int fps_idx) {
     return "60 FPS";
 }
 
-static bool IsTablet43(void) {
-    float sw = (float)GetScreenWidth();
-    float sh = (float)GetScreenHeight();
-    if (sh <= 0.001f) return false;
-    float aspect = sw / sh;
-    if (aspect < 1.0f) aspect = 1.0f / aspect;
-    return (aspect < 1.55f);
-}
-
 static const char* GetScreenModeOptionText(int mode) {
     if (IsTablet43()) return "3:2 RETRO";
     if (mode < 0 || mode >= 3) mode = 0;
@@ -1450,17 +1457,72 @@ void ApplyVSyncSetting(void) {
     // VSync en iOS es gestionado nativamente por UIKit/Metal
 }
 
-void ApplyVideoSettings(void) {
-    ApplyFpsSetting();
+static void UpdateScreenDimensions(void) {
+    int prev_w = g_screen_w;
+    int prev_h = g_screen_h;
 
-    AdaptStarsOnResolutionChange();
+    g_screen_h = 160;
 
-    if (IsWindowReady()) {
-        if (target.id <= 0) {
-            target = LoadRenderTexture(SCREEN_W, SCREEN_H);
-            SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+#if defined(PLATFORM_IOS) || defined(PLATFORM_ANDROID)
+    if (IsTablet43()) {
+        g_screen_w = 240;
+    } else {
+        if (g_config.screen_mode == 0) {
+            // COMPLETA: Adaptación nativa a la relación de aspecto exacta de la pantalla
+            float sw = (float)GetScreenWidth();
+            float sh = (float)GetScreenHeight();
+            if (sw <= 0.0f || sh <= 0.0f) {
+                g_screen_w = 284;
+            } else {
+                float aspect = sw / sh;
+                if (aspect < 1.0f) aspect = 1.0f / aspect;
+                g_screen_w = (int)roundf(160.0f * aspect);
+                if (g_screen_w % 2 != 0) g_screen_w++;
+                if (g_screen_w < 240) g_screen_w = 240;
+                if (g_screen_w > 420) g_screen_w = 420;
+            }
+        } else if (g_config.screen_mode == 1) {
+            // 16:9 WIDE: 284x160 píxeles nativos (proporción 16:9)
+            g_screen_w = 284;
+        } else {
+            // 3:2 RETRO: 240x160 clásico (GBA)
+            g_screen_w = 240;
         }
     }
+#else
+    if (g_config.screen_mode == 1) {
+        g_screen_w = 284;
+    } else if (g_config.screen_mode == 2) {
+        g_screen_w = 240;
+    } else {
+        float sw = (float)GetScreenWidth();
+        float sh = (float)GetScreenHeight();
+        if (sw > 0.0f && sh > 0.0f) {
+            float aspect = sw / sh;
+            g_screen_w = (int)roundf(160.0f * aspect);
+            if (g_screen_w % 2 != 0) g_screen_w++;
+            if (g_screen_w < 240) g_screen_w = 240;
+        } else {
+            g_screen_w = 284;
+        }
+    }
+#endif
+
+    if (IsWindowReady()) {
+        if (target.id <= 0 || g_screen_w != prev_w || g_screen_h != prev_h) {
+            if (target.id > 0) {
+                UnloadRenderTexture(target);
+            }
+            target = LoadRenderTexture(g_screen_w, g_screen_h);
+            SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+            AdaptStarsOnResolutionChange();
+        }
+    }
+}
+
+void ApplyVideoSettings(void) {
+    ApplyFpsSetting();
+    UpdateScreenDimensions();
 }
 
 int CountAchievementBits(int value) {
@@ -1761,16 +1823,15 @@ static void ValidateSecretCode(void) {
 
 static void OnSecretCodeSubmitted(const char* code) {
     if (!code) return;
-    int len = 0;
-    while (code[len] && len < 18) {
-        char ch = (char)toupper((unsigned char)code[len]);
+    int out_len = 0;
+    for (int in_idx = 0; code[in_idx] != '\0' && out_len < 18; in_idx++) {
+        char ch = (char)toupper((unsigned char)code[in_idx]);
         if ((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-') {
-            g_cheat_input[len] = ch;
-            len++;
+            g_cheat_input[out_len++] = ch;
         }
     }
-    g_cheat_input[len] = '\0';
-    g_cheat_input_len = len;
+    g_cheat_input[out_len] = '\0';
+    g_cheat_input_len = out_len;
     ValidateSecretCode();
 }
 
@@ -2135,7 +2196,8 @@ static void GameInit(void) {
     InitWindow(0, 0, "Astrallitic");
     SetExitKey(KEY_NULL);
     if (!g_config_file_found) {
-        g_config.screen_mode = 0;
+        g_config.screen_mode = IsTablet43() ? 2 : 1;
+        g_config.language = 1;
         g_config.target_fps = 1;
         g_config.vol_bgm = 10;
         g_config.vol_sfx = 10;
@@ -2194,6 +2256,7 @@ static void GameUpdate(void) {
 #if defined(PLATFORM_IOS)
     IOSGamepad_Update();
 #endif
+        UpdateScreenDimensions();
 
         float frame_dt = GetFrameTime();
         if (frame_dt > 0.25f) frame_dt = 0.25f;
@@ -2309,10 +2372,16 @@ static void GameUpdate(void) {
             }
         }
 
+#if defined(PLATFORM_IOS) || defined(PLATFORM_ANDROID)
+        bool any_touch_event = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetTouchPointCount() > 0);
+        bool any_kb_event = (current_frame_key > 0);
+#else
+        bool any_touch_event = false;
         bool any_kb_event = (current_frame_key > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+#endif
 
         if (rebinding_action == -1 && (IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT)) && IsKeyPressed(KEY_ENTER)) {
-            g_config.screen_mode = (g_config.screen_mode + 1) % 2;
+            g_config.screen_mode = (g_config.screen_mode + 1) % 3;
             ApplyVideoSettings();
             saveConfigPC();
             current_frame_key = 0;
@@ -2321,6 +2390,11 @@ static void GameUpdate(void) {
         if (any_pad_event && g_last_input_device != INPUT_GAMEPAD) {
             g_last_input_device = INPUT_GAMEPAD;
             g_toast_device = INPUT_GAMEPAD;
+            g_device_toast_timer_f = 120.0f;
+            g_device_toast_timer = 120;
+        } else if (any_touch_event && g_last_input_device != INPUT_TOUCH) {
+            g_last_input_device = INPUT_TOUCH;
+            g_toast_device = INPUT_TOUCH;
             g_device_toast_timer_f = 120.0f;
             g_device_toast_timer = 120;
         } else if (any_kb_event && g_last_input_device != INPUT_KEYBOARD) {
@@ -2343,31 +2417,6 @@ static void GameUpdate(void) {
 
         float draw_w = (float)SCREEN_W * scale_val;
         float draw_h = (float)SCREEN_H * scale_val;
-#if defined(PLATFORM_ANDROID) || defined(PLATFORM_IOS)
-        if (IsTablet43()) {
-            // En iPads con pantalla 4:3, la escala nativa más cómoda y óptima es 3:2 RETRO
-            draw_w = (float)SCREEN_W * scale_val;
-            draw_h = (float)SCREEN_H * scale_val;
-        } else {
-            if (g_config.screen_mode == 0) {
-                // Modo 0 (Por defecto): COMPLETA - llena el 100% de la pantalla del iPhone moderno
-                draw_w = screen_render_w;
-                draw_h = screen_render_h;
-            } else if (g_config.screen_mode == 1) {
-                // Modo 1: 16:9 WIDE panorámico arcade
-                draw_h = screen_render_h;
-                draw_w = draw_h * (16.0f / 9.0f);
-                if (draw_w > screen_render_w) {
-                    draw_w = screen_render_w;
-                    draw_h = draw_w * (9.0f / 16.0f);
-                }
-            } else if (g_config.screen_mode == 2) {
-                // Modo 2: 3:2 RETRO clásico (GBA)
-                draw_w = (float)SCREEN_W * scale_val;
-                draw_h = (float)SCREEN_H * scale_val;
-            }
-        }
-#endif
         float offset_x = roundf((screen_render_w - draw_w) * 0.5f);
         float offset_y = roundf((screen_render_h - draw_h) * 0.5f);
         float render_w = draw_w;
@@ -2527,7 +2576,14 @@ static void GameUpdate(void) {
                     }
                 }
                 // Confirmar con Enter / Teclado Numérico Enter / Gamepad A
-                else if ((IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || (pad_active && IsGamepadButtonPressed(pad_id, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)))) {
+                else if (pad_active && IsGamepadButtonPressed(pad_id, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+#if defined(PLATFORM_IOS)
+                    IOS_ShowSecretCodeDialog(T(STR_CHEAT_TITLE), T(STR_CHEAT_SUBTITLE2), T(STR_CHEAT_PLACEHOLDER), T(STR_CANCEL), "OK", OnSecretCodeSubmitted);
+#else
+                    ValidateSecretCode();
+#endif
+                }
+                else if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
                     ValidateSecretCode();
                 }
                 // Entrada de caracteres
@@ -2640,10 +2696,12 @@ static void GameUpdate(void) {
                 }
 
                 if (m_back || (pad_active && IsGamepadButtonPressed(pad_id, GAMEPAD_BUTTON_MIDDLE_LEFT))) {
+#if !defined(PLATFORM_IOS)
                     state = 13;
                     exit_confirm_selection = 1;
                     just_entered_menu = true;
                     PlaySfx(sndHit);
+#endif
                 }
 
                 if (m_accept) {
@@ -3017,10 +3075,10 @@ static void GameUpdate(void) {
                 else if (m_left) { g_config.language = (g_config.language - 1 + LANG_COUNT) % LANG_COUNT; saveConfigPC(); PlaySfx(sndHit); }
             } else if (options_selection == 5) { 
                 if (IsTablet43()) {
-                    g_config.screen_mode = 2; saveConfigPC(); PlaySfx(sndHit);
+                    g_config.screen_mode = 2; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit);
                 } else {
-                    if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
-                    else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                    if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+                    else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
                 }
             } else if (options_selection == 6) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
@@ -3143,10 +3201,10 @@ static void GameUpdate(void) {
                 if (m_accept) { state = 4; controls_origin_state = 12; controls_selection = 0; rebinding_action = -1; just_entered_menu = true; PlaySfx(sndHit); }
             } else if (pause_options_selection == 4) { 
                 if (IsTablet43()) {
-                    g_config.screen_mode = 2; saveConfigPC(); PlaySfx(sndHit);
+                    g_config.screen_mode = 2; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit);
                 } else {
-                    if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; saveConfigPC(); PlaySfx(sndHit); }
-                    else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; saveConfigPC(); PlaySfx(sndHit); }
+                    if (m_right || m_accept) { g_config.screen_mode = (g_config.screen_mode + 1) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
+                    else if (m_left) { g_config.screen_mode = (g_config.screen_mode - 1 + 3) % 3; ApplyVideoSettings(); saveConfigPC(); PlaySfx(sndHit); }
                 }
             } else if (pause_options_selection == 5) { 
                 if (m_right || m_accept) { g_config.target_fps = (g_config.target_fps + 1) % FPS_OPTION_COUNT; ApplyFpsSetting(); saveConfigPC(); PlaySfx(sndHit); }
@@ -3374,7 +3432,7 @@ static void GameUpdate(void) {
             }
 
             if (g_last_input_device != INPUT_GAMEPAD) {
-                if (mouse_clicked || m_back || m_accept) {
+                if (m_back) {
                     just_entered_menu = true;
                     state = controls_origin_state;
                     PlaySfx(sndHit);
@@ -3565,8 +3623,10 @@ static void GameUpdate(void) {
         }
 
         // --- BUCLE FIXED UPDATE (LÓGICA FÍSICA A 60 HZ) ---
-        while (time_accumulator >= FIXED_DELTA) {
+        int physics_steps = 0;
+        while (time_accumulator >= FIXED_DELTA && physics_steps < 4) {
             time_accumulator -= FIXED_DELTA;
+            physics_steps++;
             frame_count++;
 
             prev_player_x = player_x;
@@ -4805,8 +4865,9 @@ static void GameUpdate(void) {
                 }
             }
         }
+        if (time_accumulator > FIXED_DELTA * 4.0f) time_accumulator = 0.0f;
 
-        // --- RENDERIZADO AL VIRTUAL BUFFER (240x160) ---
+        // --- RENDERIZADO AL VIRTUAL BUFFER ---
         float alpha_interp = time_accumulator / FIXED_DELTA;
         if (alpha_interp < 0.0f) alpha_interp = 0.0f;
         if (alpha_interp > 1.0f) alpha_interp = 1.0f;
@@ -6296,12 +6357,34 @@ static void GameUpdate(void) {
 
         DrawDeviceNotificationToast(g_device_toast_timer, g_toast_device);
 
-        // --- POP-UP DE LOGRO DESBLOQUEADO (Abajo a la izquierda) ---
+        // --- POP-UP DE LOGRO DESBLOQUEADO (Arriba en el centro, justo debajo del HUD) ---
         if (g_achievement_toast_timer > 0) {
-            int toast_w = 118;
+            const char* ach_header = T(STR_NEW_ACHIEVEMENT);
+            const char* ach_title = T(GetAchTitleId(g_latest_unlocked_ach));
+            int head_w = MeasureStringCustom(ach_header, 1);
+            int title_w = MeasureStringCustom(ach_title, 1);
+            int text_max_w = (title_w > head_w) ? title_w : head_w;
+            int toast_w = text_max_w + 32;
+            if (toast_w < 120) toast_w = 120;
             int toast_h = 24;
-            int toast_x = 8;
-            int toast_y = SCREEN_H - 32;
+            int toast_x = (SCREEN_W - toast_w) / 2;
+
+            int target_y = 18;
+            int start_y = -toast_h - 2;
+            int toast_y = target_y;
+            if (g_achievement_toast_timer > 160) {
+                float t = (float)(180 - g_achievement_toast_timer) / 20.0f;
+                if (t < 0.0f) t = 0.0f;
+                if (t > 1.0f) t = 1.0f;
+                t = sinf(t * (3.14159265f * 0.5f));
+                toast_y = (int)roundf(start_y + (target_y - start_y) * t);
+            } else if (g_achievement_toast_timer < 20) {
+                float t = (float)(20 - g_achievement_toast_timer) / 20.0f;
+                if (t < 0.0f) t = 0.0f;
+                if (t > 1.0f) t = 1.0f;
+                t = t * t;
+                toast_y = (int)roundf(target_y - (target_y - start_y) * t);
+            }
 
             DrawBevelledBoxPC(toast_x, toast_y, toast_w, toast_h, GBA_COLOR(1, 4, 8), C_GREEN, true);
             DrawRectangle(toast_x + 2, toast_y + 2, 1, 1, C_CYAN);
@@ -6314,8 +6397,8 @@ static void GameUpdate(void) {
             Enemy t_enemy = { .x = toast_x + 6, .y = toast_y + 6, .type = enemy_t, .active = 1, .hp = 1 };
             DrawEnemyPC(&t_enemy, frame_count);
 
-            DrawStringCustom(T(STR_NEW_ACHIEVEMENT), toast_x + 24, toast_y + 5, C_YELLOW, 1);
-            DrawStringCustom(T(GetAchTitleId(g_latest_unlocked_ach)), toast_x + 24, toast_y + 14, WHITE, 1);
+            DrawStringCustom(ach_header, toast_x + 24, toast_y + 5, C_YELLOW, 1);
+            DrawStringCustom(ach_title, toast_x + 24, toast_y + 14, WHITE, 1);
         }
 
         EndTextureMode();

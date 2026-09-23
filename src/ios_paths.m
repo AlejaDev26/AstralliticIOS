@@ -228,6 +228,7 @@ void PlatformIOSShowSecretCodeDialog(const char* title, const char* message, con
             textField.placeholder = nsPlaceholder;
             textField.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
             textField.autocorrectionType = UITextAutocorrectionTypeNo;
+            textField.keyboardType = UIKeyboardTypeASCIICapable;
             textField.returnKeyType = UIReturnKeyDone;
         }];
 
