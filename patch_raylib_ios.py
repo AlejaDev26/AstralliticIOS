@@ -48,6 +48,36 @@ def patch_raylib():
         with open(rcore_ios_path, "r", encoding="utf-8") as f:
             content = f.read()
 
+        # Añadir funciones globales de FPS y variable s_ios_display_link antes de GameViewController
+        if "s_ios_display_link = nil;" not in content:
+            fps_header = """static CADisplayLink *s_ios_display_link = nil;
+
+int IOS_GetMaxRefreshRate(void) {
+    if (@available(iOS 10.3, *)) {
+        NSInteger maxFps = [UIScreen mainScreen].maximumFramesPerSecond;
+        if (maxFps > 0) return (int)maxFps;
+    }
+    return 60;
+}
+
+void IOS_SetDisplayFPS(int fps) {
+    if (!s_ios_display_link) return;
+    int max_fps = IOS_GetMaxRefreshRate();
+    if (max_fps < 60) max_fps = 60;
+    if (fps <= 0) fps = max_fps;
+    if (fps > max_fps) fps = max_fps;
+
+    if (@available(iOS 15.0, *)) {
+        float f = (float)fps;
+        s_ios_display_link.preferredFrameRateRange = CAFrameRateRangeMake(f, f, f);
+    } else {
+        s_ios_display_link.preferredFramesPerSecond = fps;
+    }
+}
+
+@interface GameViewController"""
+            content = content.replace("@interface GameViewController", fps_header)
+
         # Eliminar didUpdateEffectiveGeometry (incompatible con SDKs de Xcode 15 y anterior)
         if "didUpdateEffectiveGeometry" in content:
             content = re.sub(r'- \(void\)windowScene:[^\{]+\{[^\}]+\}', '', content)
@@ -179,37 +209,6 @@ def patch_raylib():
             content = content.replace(recreate_target1, recreate_replacement1)
         elif recreate_target2 in content and "int tmp = width;" not in content:
             content = content.replace(recreate_target2, recreate_replacement2)
-
-        # Añadir funciones de control dinámico de FPS y detección de pantalla
-        fps_func_target = "- (bool)prefersStatusBarHidden {"
-        fps_func_replacement = """static CADisplayLink *s_ios_display_link = nil;
-
-int IOS_GetMaxRefreshRate(void) {
-    if (@available(iOS 10.3, *)) {
-        NSInteger maxFps = [UIScreen mainScreen].maximumFramesPerSecond;
-        if (maxFps > 0) return (int)maxFps;
-    }
-    return 60;
-}
-
-void IOS_SetDisplayFPS(int fps) {
-    if (!s_ios_display_link) return;
-    int max_fps = IOS_GetMaxRefreshRate();
-    if (max_fps < 60) max_fps = 60;
-    if (fps <= 0) fps = max_fps;
-    if (fps > max_fps) fps = max_fps;
-
-    if (@available(iOS 15.0, *)) {
-        float f = (float)fps;
-        s_ios_display_link.preferredFrameRateRange = CAFrameRateRangeMake(f, f, f);
-    } else {
-        s_ios_display_link.preferredFramesPerSecond = fps;
-    }
-}
-
-- (bool)prefersStatusBarHidden {"""
-        if fps_func_target in content and "s_ios_display_link" not in content:
-            content = content.replace(fps_func_target, fps_func_replacement)
 
         # Configurar CADisplayLink en SceneDelegate para soportar ProMotion 120Hz nativo en iPhone
         dlink_target = "[displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];"
