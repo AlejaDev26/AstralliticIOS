@@ -44,8 +44,10 @@ static GCController* GetControllerAtIndex(int index)
 {
     NSArray<GCController *> *controllers = [GCController controllers];
     if (index < 0 || index >= (int)[controllers count]) {
-        if (index == 0 && [GCController current] != nil) {
-            return [GCController current];
+        if (@available(iOS 13.0, *)) {
+            if (index == 0 && [GCController current] != nil) {
+                return [GCController current];
+            }
         }
         return nil;
     }
@@ -64,9 +66,11 @@ void IOSGamepad_Update(void)
 
     NSArray<GCController *> *controllers = [GCController controllers];
     int count = (int)[controllers count];
-    if (count == 0 && [GCController current] != nil) {
-        controllers = @[[GCController current]];
-        count = 1;
+    if (@available(iOS 13.0, *)) {
+        if (count == 0 && [GCController current] != nil) {
+            controllers = @[[GCController current]];
+            count = 1;
+        }
     }
 
     for (int i = 0; i < count && i < MAX_GAMEPADS; i++) {
